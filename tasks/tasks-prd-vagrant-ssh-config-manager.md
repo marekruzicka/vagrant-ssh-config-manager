@@ -47,12 +47,12 @@
   - [x] 3.3 Add main SSH config file include directive management
   - [x] 3.4 Implement project-based naming scheme for isolation
   - [x] 3.5 Add comment markers for plugin-managed sections
-- [ ] 4.0 Integrate with Vagrant VM Lifecycle Events
-  - [ ] 4.1 Create action hooks for vagrant up (add SSH entries)
-  - [ ] 4.2 Create action hooks for vagrant destroy (remove SSH entries)
-  - [ ] 4.3 Create action hooks for vagrant reload (update SSH entries)
-  - [ ] 4.4 Create action hooks for vagrant halt/suspend/resume (update as needed)
-  - [ ] 4.5 Create action hooks for vagrant provision (refresh SSH entries)
+- [x] 4.0 Integrate with Vagrant VM Lifecycle Events
+  - [x] 4.1 Create action hooks for vagrant up (add SSH entries)
+  - [x] 4.2 Create action hooks for vagrant destroy (remove SSH entries)
+  - [x] 4.3 Create action hooks for vagrant reload (update SSH entries)
+  - [x] 4.4 Create action hooks for vagrant halt/suspend/resume (update as needed)
+  - [x] 4.5 Create action hooks for vagrant provision (refresh SSH entries)
 - [ ] 5.0 Add Plugin Configuration and Validation
   - [ ] 5.1 Create configuration class for Vagrantfile settings
   - [ ] 5.2 Implement enabled/disabled toggle functionality
