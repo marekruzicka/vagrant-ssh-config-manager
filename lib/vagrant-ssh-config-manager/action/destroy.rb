@@ -31,6 +31,9 @@ module VagrantPlugins
           begin
             @logger.info("Removing SSH config entry for machine: #{machine.name}")
 
+            # Check file permissions before attempting removal
+            check_file_permissions(machine, config)
+
             # Create SSH config manager
             manager = SshConfigManager.new(machine, config)
             
@@ -40,25 +43,47 @@ module VagrantPlugins
             # Check if SSH entry exists
             unless manager.ssh_entry_exists?(host_name)
               @logger.debug("No SSH config entry found for machine: #{machine.name}")
+              machine.ui.info("No SSH config entry found to remove for machine: #{machine.name}")
               return
             end
 
-            # Remove SSH entry
+            # Remove SSH entry with enhanced logging
+            @logger.info("Attempting to remove SSH config entry for #{machine.name} (#{host_name})")
+            
             if manager.remove_ssh_entry(host_name)
               machine.ui.info("SSH config removed for machine '#{machine.name}' (#{host_name})")
+              @logger.info("Successfully removed SSH config entry for #{machine.name}")
             else
               machine.ui.warn("Failed to remove SSH config entry for machine: #{machine.name}")
+              @logger.warn("Failed to remove SSH config entry for #{machine.name}")
             end
 
             # If this was the last machine in the project, clean up
             cleanup_project_if_empty(manager, machine)
 
+          rescue Errno::EACCES => e
+            @logger.error("Permission denied accessing SSH config file for #{machine.name}: #{e.message}")
+            machine.ui.warn("SSH config manager: Permission denied. Check file permissions.")
+          rescue Errno::EIO => e
+            @logger.error("I/O error for #{machine.name}: #{e.message}")
+            machine.ui.warn("SSH config manager: I/O error accessing SSH config file.")
           rescue => e
             @logger.error("Error removing SSH config for #{machine.name}: #{e.message}")
             @logger.debug("Backtrace: #{e.backtrace.join("\n")}")
             
             # Don't fail the vagrant destroy process, just warn
             machine.ui.warn("SSH config manager encountered an error during cleanup: #{e.message}")
+          end
+        end
+
+        def check_file_permissions(machine, config)
+          ssh_config_file = config.ssh_conf_file || File.expand_path("~/.ssh/config")
+          
+          if File.exist?(ssh_config_file)
+            unless File.writable?(ssh_config_file)
+              @logger.warn("SSH config file is not writable: #{ssh_config_file}")
+              machine.ui.warn("Warning: SSH config file is not writable: #{ssh_config_file}")
+            end
           end
         end
 
