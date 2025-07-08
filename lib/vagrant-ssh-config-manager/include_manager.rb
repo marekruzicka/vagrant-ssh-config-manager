@@ -14,11 +14,16 @@ module VagrantPlugins
         @logger = Log4r::Logger.new("vagrant::plugins::sshconfigmanager::includemanager")
       end
 
+      # Get the SSH config file path (always ~/.ssh/config)
+      def ssh_config_file
+        @ssh_config_file ||= File.expand_path("~/.ssh/config")
+      end
+
       # Check if Include directive exists in main SSH config
       def include_directive_exists?
-        return false unless File.exist?(@config.ssh_conf_file)
+        return false unless File.exist?(ssh_config_file)
         
-        content = File.read(@config.ssh_conf_file)
+        content = File.read(ssh_config_file)
         include_pattern = /^Include\s+#{Regexp.escape(@config.ssh_config_dir)}/
         content.match?(include_pattern)
       end
@@ -35,7 +40,7 @@ module VagrantPlugins
           # Add Include directive at the beginning of file
           add_include_to_config
           
-          @logger.info("Added Include directive for #{@config.ssh_config_dir} to #{@config.ssh_conf_file}")
+          @logger.info("Added Include directive for #{@config.ssh_config_dir} to ~/.ssh/config")
           true
         rescue => e
           @logger.error("Failed to add Include directive: #{e.message}")
@@ -56,7 +61,7 @@ module VagrantPlugins
           # Remove Include directive
           remove_include_from_config
           
-          @logger.info("Removed Include directive for #{@config.ssh_config_dir} from #{@config.ssh_conf_file}")
+          @logger.info("Removed Include directive for #{@config.ssh_config_dir} from ~/.ssh/config")
           true
         rescue => e
           @logger.error("Failed to remove Include directive: #{e.message}")
@@ -113,27 +118,27 @@ module VagrantPlugins
 
       # Check if main SSH config file is write-protected
       def main_config_writable?
-        return false unless File.exist?(@config.ssh_conf_file)
-        File.writable?(@config.ssh_conf_file)
+        return false unless File.exist?(ssh_config_file)
+        File.writable?(ssh_config_file)
       end
 
       # Handle edge case: empty main config file
       def handle_empty_main_config
-        unless File.exist?(@config.ssh_conf_file)
+        unless File.exist?(ssh_config_file)
           # Create empty SSH config file with proper permissions
-          FileUtils.mkdir_p(File.dirname(@config.ssh_conf_file), mode: 0700)
-          File.write(@config.ssh_conf_file, "")
-          File.chmod(0600, @config.ssh_conf_file)
-          @logger.info("Created empty SSH config file: #{@config.ssh_conf_file}")
+          FileUtils.mkdir_p(File.dirname(ssh_config_file), mode: 0700)
+          File.write(ssh_config_file, "")
+          File.chmod(0600, ssh_config_file)
+          @logger.info("Created empty SSH config file: #{ssh_config_file}")
         end
       end
 
       # Validate SSH config file format
       def validate_main_config
-        return true unless File.exist?(@config.ssh_conf_file)
+        return true unless File.exist?(ssh_config_file)
         
         begin
-          content = File.read(@config.ssh_conf_file)
+          content = File.read(ssh_config_file)
           # Basic validation - check for severely malformed config
           lines = content.lines
           lines.each_with_index do |line, index|
@@ -156,15 +161,15 @@ module VagrantPlugins
 
       # Create backup of main SSH config file
       def create_backup
-        backup_path = "#{@config.ssh_conf_file}.vagrant-ssh-config-manager.backup"
-        FileUtils.cp(@config.ssh_conf_file, backup_path) if File.exist?(@config.ssh_conf_file)
+        backup_path = "#{ssh_config_file}.vagrant-ssh-config-manager.backup"
+        FileUtils.cp(ssh_config_file, backup_path) if File.exist?(ssh_config_file)
         @backup_path = backup_path
       end
 
       # Restore backup of main SSH config file
       def restore_backup
         if @backup_path && File.exist?(@backup_path)
-          FileUtils.cp(@backup_path, @config.ssh_conf_file)
+          FileUtils.cp(@backup_path, ssh_config_file)
           File.delete(@backup_path)
           @logger.info("Restored SSH config from backup")
         end
@@ -174,7 +179,7 @@ module VagrantPlugins
       def add_include_to_config
         handle_empty_main_config
         
-        content = File.exist?(@config.ssh_conf_file) ? File.read(@config.ssh_conf_file) : ""
+        content = File.exist?(ssh_config_file) ? File.read(ssh_config_file) : ""
         lines = content.lines
         
         # Find optimal location for Include
@@ -197,9 +202,9 @@ module VagrantPlugins
 
       # Remove Include directive from SSH config
       def remove_include_from_config
-        return unless File.exist?(@config.ssh_conf_file)
+        return unless File.exist?(ssh_config_file)
         
-        content = File.read(@config.ssh_conf_file)
+        content = File.read(ssh_config_file)
         lines = content.lines
         
         # Find and remove plugin-managed Include directive
@@ -227,7 +232,7 @@ module VagrantPlugins
 
       # Write SSH config file atomically
       def write_config_atomically(content)
-        temp_file = Tempfile.new(File.basename(@config.ssh_conf_file), File.dirname(@config.ssh_conf_file))
+        temp_file = Tempfile.new(File.basename(ssh_config_file), File.dirname(ssh_config_file))
         begin
           temp_file.write(content)
           temp_file.close
@@ -236,7 +241,7 @@ module VagrantPlugins
           File.chmod(0600, temp_file.path)
           
           # Atomic move
-          FileUtils.mv(temp_file.path, @config.ssh_conf_file)
+          FileUtils.mv(temp_file.path, ssh_config_file)
         ensure
           temp_file.unlink if temp_file && File.exist?(temp_file.path)
         end
