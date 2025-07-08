@@ -226,6 +226,13 @@ module VagrantPlugins
         entries = Dir.entries(@config.ssh_config_dir) - %w[. ..]
         if entries.empty?
           begin
+            # Remove Include directive before removing directory
+            if @config.manage_includes
+              require_relative 'include_manager'
+              include_manager = IncludeManager.new(@config)
+              include_manager.remove_include_directive
+            end
+            
             Dir.rmdir(@config.ssh_config_dir)
             @logger.info("Removed empty SSH config directory: #{@config.ssh_config_dir}")
           rescue => e
