@@ -1,6 +1,3 @@
-require_relative '../ssh_info_extractor'
-require_relative '../ssh_config_manager'
-
 module VagrantPlugins
   module SshConfigManager
     module Action
@@ -33,8 +30,16 @@ module VagrantPlugins
           begin
             @logger.info("Updating SSH config entry for machine: #{machine.name}")
 
-            # Check file permissions before attempting operations
-            check_file_permissions(machine, config)
+            # Lazy load required classes with error handling
+            begin
+              require 'vagrant-ssh-config-manager/ssh_info_extractor'
+              require 'vagrant-ssh-config-manager/file_manager'
+              require 'vagrant-ssh-config-manager/include_manager'
+            rescue LoadError => e
+              @logger.error("Failed to load required classes: #{e.message}")
+              machine.ui.warn("SSH config manager: Failed to load required components, skipping SSH config update")
+              return
+            end
 
             # Extract SSH information
             extractor = SshInfoExtractor.new(machine)
@@ -46,90 +51,53 @@ module VagrantPlugins
               return
             end
 
-            ssh_info = extractor.extract_ssh_info
-            unless ssh_info
-              @logger.warn("Could not extract SSH info for machine: #{machine.name}")
-              machine.ui.warn("Could not extract SSH info for machine: #{machine.name}")
-              return
-            end
+            # Create file manager and include manager
+            file_manager = FileManager.new(config)
+            include_manager = IncludeManager.new(config)
 
-            # Generate unique host name for project isolation
-            manager = SshConfigManager.new(machine, config)
-            host_name = manager.send(:generate_isolated_host_name, machine.name)
-            ssh_info['Host'] = host_name
-
-            @logger.info("Checking SSH config changes for #{machine.name} (#{host_name})")
-
-            # Check if entry exists and compare
-            if manager.ssh_entry_exists?(host_name)
-              # Get existing entry for comparison
-              existing_entries = manager.get_project_ssh_entries
-              existing_entry = existing_entries.find { |entry| entry['Host'] == host_name }
-              
-              if existing_entry && ssh_configs_different?(existing_entry, ssh_info)
-                # Update SSH entry
-                @logger.info("SSH config changes detected, updating entry for #{machine.name}")
-                if manager.update_ssh_entry(ssh_info)
-                  machine.ui.info("SSH config updated for machine '#{machine.name}' (#{host_name})")
-                  @logger.info("SSH config updated due to changes in network configuration")
-                else
-                  machine.ui.warn("Failed to update SSH config entry for machine: #{machine.name}")
-                  @logger.warn("Failed to update SSH config entry for #{machine.name}")
-                end
+            # Check if file exists and compare content
+            if file_manager.ssh_config_file_exists?(machine)
+              # Update SSH config file (always regenerate for simplicity)
+              @logger.info("SSH config file exists, updating for #{machine.name}")
+              if file_manager.write_ssh_config_file(machine)
+                host_name = file_manager.send(:generate_host_name, machine)
+                machine.ui.info("SSH config file updated for machine '#{machine.name}' (#{host_name})")
+                @logger.info("SSH config file updated due to reload")
+                
+                # Ensure Include directive is managed
+                include_manager.manage_include_directive
               else
-                @logger.debug("SSH config unchanged for machine: #{machine.name}")
-                machine.ui.info("SSH config unchanged for machine: #{machine.name}")
+                machine.ui.warn("Failed to update SSH config file for machine: #{machine.name}")
+                @logger.warn("Failed to update SSH config file for #{machine.name}")
               end
             else
-              # Add new SSH entry (machine might have been added during reload)
-              @logger.info("No existing SSH config entry found, adding new entry for #{machine.name}")
-              if manager.add_ssh_entry(ssh_info)
-                machine.ui.info("SSH config added for machine '#{machine.name}' as '#{host_name}'")
-                @logger.info("Successfully added new SSH config entry for #{machine.name}")
+              # Add new SSH config file (machine might have been added during reload)
+              @logger.info("No existing SSH config file found, creating new file for #{machine.name}")
+              if file_manager.write_ssh_config_file(machine)
+                host_name = file_manager.send(:generate_host_name, machine)
+                machine.ui.info("SSH config file created for machine '#{machine.name}' as '#{host_name}'")
+                @logger.info("Successfully created new SSH config file for #{machine.name}")
+                
+                # Manage Include directive after file creation
+                include_manager.manage_include_directive
               else
-                machine.ui.warn("Failed to add SSH config entry for machine: #{machine.name}")
-                @logger.warn("Failed to add SSH config entry for #{machine.name}")
+                machine.ui.warn("Failed to create SSH config file for machine: #{machine.name}")
+                @logger.warn("Failed to create SSH config file for #{machine.name}")
               end
             end
 
           rescue Errno::EACCES => e
-            @logger.error("Permission denied accessing SSH config file for #{machine.name}: #{e.message}")
+            @logger.error("Permission denied accessing SSH config for #{machine.name}: #{e.message}")
             machine.ui.warn("SSH config manager: Permission denied. Check file permissions.")
           rescue Errno::EIO => e
             @logger.error("I/O error for #{machine.name}: #{e.message}")
-            machine.ui.warn("SSH config manager: I/O error accessing SSH config file.")
+            machine.ui.warn("SSH config manager: I/O error accessing SSH config files.")
           rescue => e
             @logger.error("Error updating SSH config for #{machine.name}: #{e.message}")
             @logger.debug("Backtrace: #{e.backtrace.join("\n")}")
             
             # Don't fail the vagrant reload process, just warn
             machine.ui.warn("SSH config manager encountered an error: #{e.message}")
-          end
-        end
-
-        def check_file_permissions(machine, config)
-          ssh_config_file = config.ssh_conf_file || File.expand_path("~/.ssh/config")
-          
-          if File.exist?(ssh_config_file)
-            unless File.writable?(ssh_config_file)
-              @logger.warn("SSH config file is not writable: #{ssh_config_file}")
-              machine.ui.warn("Warning: SSH config file is not writable: #{ssh_config_file}")
-            end
-          else
-            ssh_dir = File.dirname(ssh_config_file)
-            unless File.writable?(ssh_dir)
-              @logger.warn("SSH directory is not writable: #{ssh_dir}")
-              machine.ui.warn("Warning: SSH directory is not writable: #{ssh_dir}")
-            end
-          end
-        end
-
-        def ssh_configs_different?(existing, new_config)
-          # Compare key SSH configuration parameters
-          important_keys = %w[HostName Port User IdentityFile ProxyCommand]
-          
-          important_keys.any? do |key|
-            existing[key] != new_config[key]
           end
         end
       end

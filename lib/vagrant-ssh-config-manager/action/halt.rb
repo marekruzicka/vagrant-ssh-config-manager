@@ -1,5 +1,3 @@
-require_relative '../ssh_config_manager'
-
 module VagrantPlugins
   module SshConfigManager
     module Action
@@ -16,7 +14,7 @@ module VagrantPlugins
           # Handle SSH config for halt/suspend operations
           if machine
             config = machine.config.sshconfigmanager
-            if config && config.enabled
+            if config && config.enabled && config.keep_config_on_halt
               handle_ssh_config_for_halt(machine, config, env)
             end
           end
@@ -33,17 +31,12 @@ module VagrantPlugins
             operation = determine_operation_type(env)
             @logger.info("Handling SSH config for #{operation} operation on machine: #{machine.name}")
 
-            manager = SshConfigManager.new(machine, config)
-            host_name = manager.send(:generate_isolated_host_name, machine.name)
-
+            # With separate files, we keep the SSH config file during halt/suspend
+            # This allows users to quickly resume and reconnect
             case operation
-            when :halt, :suspend
-              # For halt/suspend, we can keep the SSH config but add a note that it's offline
-              # This way users can still see the configuration and quickly resume
-              handle_offline_state(machine, manager, host_name, operation)
-            when :poweroff, :force_halt
-              # For forced operations, also keep config but mark as offline
-              handle_offline_state(machine, manager, host_name, operation)
+            when :halt, :suspend, :poweroff, :force_halt
+              machine.ui.info("Machine #{operation}ed - SSH config file retained")
+              @logger.debug("Keeping SSH config file for #{operation}ed machine: #{machine.name}")
             else
               @logger.debug("No SSH config action needed for operation: #{operation}")
             end
@@ -68,41 +61,6 @@ module VagrantPlugins
           else
             :halt
           end
-        end
-
-        def handle_offline_state(machine, manager, host_name, operation)
-          # Check if SSH entry exists
-          unless manager.ssh_entry_exists?(host_name)
-            @logger.debug("No SSH config entry found for machine: #{machine.name}")
-            return
-          end
-
-          # For now, we keep the SSH config entries even when machines are halted/suspended
-          # This allows users to quickly resume and reconnect
-          # In the future, we could add a configuration option to remove entries on halt
-
-          case operation
-          when :halt
-            machine.ui.info("Machine halted - SSH config retained for '#{host_name}'")
-            @logger.debug("Keeping SSH config for halted machine: #{machine.name}")
-          when :suspend
-            machine.ui.info("Machine suspended - SSH config retained for '#{host_name}'")
-            @logger.debug("Keeping SSH config for suspended machine: #{machine.name}")
-          when :poweroff, :force_halt
-            machine.ui.info("Machine powered off - SSH config retained for '#{host_name}'")
-            @logger.debug("Keeping SSH config for powered off machine: #{machine.name}")
-          end
-
-          # Optional: Add metadata to track machine state
-          # This could be useful for future features like showing machine status in SSH config
-          update_machine_state_metadata(manager, host_name, operation)
-        end
-
-        def update_machine_state_metadata(manager, host_name, operation)
-          # This is a placeholder for potential future functionality
-          # We could add comments to the SSH config indicating machine state
-          # For now, we just log the state change
-          @logger.debug("Machine #{host_name} transitioned to state: #{operation}")
         end
       end
     end

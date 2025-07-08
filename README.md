@@ -4,8 +4,10 @@ A Vagrant plugin that automatically manages SSH configuration entries for Vagran
 
 ## Features
 
-- **Automatic SSH Config Management**: Creates and maintains SSH config entries when VMs are started
+- **Automatic SSH Config Management**: Creates and maintains SSH config files when VMs are started
 - **Project Isolation**: Each Vagrant project gets its own SSH config namespace to avoid conflicts
+- **Separate File Management**: Creates individual SSH config files for each VM in a dedicated directory
+- **Include Directive Management**: Automatically manages Include directives in your main SSH config
 - **Lifecycle Integration**: Hooks into all Vagrant VM lifecycle events (up, destroy, reload, halt, provision)
 - **Configurable Behavior**: Extensive configuration options for different workflows
 - **Robust Error Handling**: Graceful handling of file permission issues and concurrent access
@@ -36,7 +38,7 @@ vagrant plugin install vagrant-ssh-config-manager-*.gem
 1. Install the plugin
 2. Add configuration to your `Vagrantfile` (optional)
 3. Run `vagrant up`
-4. Connect to your VM with: `ssh vagrant-<project>-<machine-name>`
+4. Connect to your VM with: `ssh <project>-<machine-name>`
 
 ### Example
 
@@ -45,9 +47,10 @@ vagrant plugin install vagrant-ssh-config-manager-*.gem
 Vagrant.configure("2") do |config|
   config.vm.box = "ubuntu/focal64"
   
-  # Optional: Configure the plugin
+  # Optional: Configure the plugin (uses sensible defaults)
   config.sshconfigmanager.enabled = true
-  config.sshconfigmanager.ssh_conf_file = "~/.ssh/config"
+  config.sshconfigmanager.ssh_config_dir = "~/.ssh/config.d/vagrant"
+  config.sshconfigmanager.manage_includes = true
   
   config.vm.define "web" do |web|
     web.vm.network "private_network", ip: "192.168.33.10"
@@ -81,7 +84,11 @@ end
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `enabled` | Boolean | `true` | Enable or disable the plugin globally |
-| `ssh_conf_file` | String | `~/.ssh/config` | Path to SSH config file to manage |
+| `ssh_config_dir` | String | `~/.ssh/config.d/vagrant` | Directory for individual SSH config files |
+| `manage_includes` | Boolean | `false` | Automatically manage Include directive in main SSH config |
+| `auto_create_dir` | Boolean | `true` | Automatically create SSH config directory if it doesn't exist |
+| `cleanup_empty_dir` | Boolean | `true` | Remove empty SSH config directory when no VMs remain |
+| `ssh_conf_file` | String | `~/.ssh/config` | Path to main SSH config file (legacy option) |
 | `auto_remove_on_destroy` | Boolean | `true` | Remove SSH entries when VM is destroyed |
 | `update_on_reload` | Boolean | `true` | Update SSH entries when VM is reloaded |
 | `refresh_on_provision` | Boolean | `true` | Refresh SSH entries when VM is provisioned |
@@ -90,50 +97,78 @@ end
 
 ## How It Works
 
+### Separate File Architecture (Default)
+
+The plugin creates individual SSH config files for each VM in a dedicated directory (default: `~/.ssh/config.d/vagrant/`). This approach:
+
+- **Prevents conflicts**: Each VM has its own config file
+- **Enables easier cleanup**: Destroying a VM removes only its config file
+- **Supports concurrent operations**: Multiple VMs can be managed simultaneously
+- **Maintains cleaner config**: Main SSH config stays uncluttered
+
 ### SSH Config Structure
 
-The plugin creates a clean separation between your existing SSH config and Vagrant-managed entries:
+```
+~/.ssh/config                           # Your main SSH config
+~/.ssh/config.d/vagrant/                # Plugin-managed directory
+  ├── a1b2c3d4-web.conf                # Individual VM config files
+  ├── a1b2c3d4-db.conf
+  └── f5e6d7c8-api.conf                # From different projects
+```
+
+### Include Directive Management
+
+When `manage_includes` is enabled (default: false), the plugin automatically adds:
 
 ```
-~/.ssh/config                    # Your main SSH config
-~/.ssh/config.d/                 # Directory for include files
-  └── vagrant-a1b2c3d4           # Project-specific include file
+# ~/.ssh/config
+# BEGIN vagrant-ssh-config-manager
+Include ~/.ssh/config.d/vagrant/*.conf
+# END vagrant-ssh-config-manager
+
+# Your existing SSH configuration continues here...
 ```
 
 ### Project Isolation
 
 Each Vagrant project gets a unique identifier based on the project path:
 - Project path: `/home/user/my-app`
-- Project hash: `a1b2c3d4` (first 8 chars of SHA256)
-- SSH host names: `vagrant-a1b2c3d4-web`, `vagrant-a1b2c3d4-db`
+- Project hash: `a1b2c3d4` (first 8 chars of MD5)
+- SSH host names: `my-app-web`, `my-app-db`
+- Config files: `a1b2c3d4-web.conf`, `a1b2c3d4-db.conf`
 
-### Include File Example
+### Individual Config File Example
 
 ```
-# ~/.ssh/config.d/vagrant-a1b2c3d4
-# Vagrant SSH Config - Project: my-app
-# Generated on: 2025-01-01 12:00:00
-# DO NOT EDIT MANUALLY - Managed by vagrant-ssh-config-manager
+# ~/.ssh/config.d/vagrant/a1b2c3d4-web.conf
+# Managed by vagrant-ssh-config-manager plugin
+# Project: my-app
+# VM: web
+# Generated: 2025-01-01 12:00:00
 
-Host vagrant-a1b2c3d4-web
+Host my-app-web
   HostName 192.168.33.10
   Port 22
   User vagrant
   IdentityFile /home/user/.vagrant.d/insecure_private_key
-  StrictHostKeyChecking no
+  IdentitiesOnly yes
   UserKnownHostsFile /dev/null
-  LogLevel QUIET
+  StrictHostKeyChecking no
+  PasswordAuthentication no
+  LogLevel FATAL
 ```
 
 ### Main SSH Config Integration
 
+When `manage_includes` is enabled, the plugin automatically adds an Include directive:
+
 ```
 # ~/.ssh/config
-# Your existing SSH configuration...
+# BEGIN vagrant-ssh-config-manager
+Include ~/.ssh/config.d/vagrant/*.conf
+# END vagrant-ssh-config-manager
 
-# === Vagrant SSH Config Manager ===
-Include ~/.ssh/config.d/vagrant-*
-# === End Vagrant SSH Config Manager ===
+# Your existing SSH configuration...
 ```
 
 ## Usage Examples
@@ -244,22 +279,6 @@ rm ~/.ssh/config.d/vagrant-*
 sed -i '/# === Vagrant SSH Config Manager ===/,/# === End Vagrant SSH Config Manager ===/d' ~/.ssh/config
 ```
 
-## Contributing
-
-We welcome contributions! Please see [DEVELOPMENT.md](DEVELOPMENT.md) for:
-
-- Development setup and build process
-- Testing guidelines
-- Code style requirements
-- Pull request process
-
-Quick contribution steps:
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes with tests
-4. Follow the development guide for testing and building
-5. Submit a pull request
-
 ## Compatibility
 
 - **Vagrant**: 2.0+
@@ -267,32 +286,6 @@ Quick contribution steps:
 - **Platforms**: Linux, macOS, Windows (with WSL)
 - **Providers**: VirtualBox, VMware, Libvirt, Hyper-V, Docker, AWS, and others
 
-## Similar Projects
-
-- [vagrant-hostmanager](https://github.com/devopsgroup-io/vagrant-hostmanager) - Manages `/etc/hosts` entries
-- [vagrant-ssh-config](https://github.com/glenndehaan/vagrant-ssh-config) - Basic SSH config generation
-
 ## License
 
 MIT License - see [LICENSE](LICENSE) file for details.
-
-## Changelog
-
-### v1.0.0 (2025-01-01)
-- Initial release
-- Automatic SSH config management
-- Project isolation
-- Full Vagrant lifecycle integration
-- Comprehensive configuration options
-- File locking and error handling
-- Extensive test coverage
-
-## Support
-
-- **Issues**: [GitHub Issues](https://github.com/your-username/vagrant-ssh-config-manager/issues)
-- **Documentation**: This README and inline code documentation
-- **Community**: Discussions tab on GitHub repository
-
----
-
-**Made with ❤️ for the Vagrant community**

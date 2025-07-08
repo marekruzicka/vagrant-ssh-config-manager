@@ -1,6 +1,3 @@
-require_relative '../ssh_info_extractor'
-require_relative '../ssh_config_manager'
-
 module VagrantPlugins
   module SshConfigManager
     module Action
@@ -21,9 +18,9 @@ module VagrantPlugins
 
           # Check if plugin is enabled
           config = machine.config.sshconfigmanager
-          return unless config && config.enabled
+          return unless config && config.enabled && config.refresh_on_provision
 
-          # Handle SSH config refresh after provisioning
+          # Handle SSH config file refresh after provisioning
           handle_ssh_config_refresh(machine, config)
         end
 
@@ -31,7 +28,18 @@ module VagrantPlugins
 
         def handle_ssh_config_refresh(machine, config)
           begin
-            @logger.info("Refreshing SSH config entry after provisioning for machine: #{machine.name}")
+            @logger.info("Refreshing SSH config file after provisioning for machine: #{machine.name}")
+
+            # Lazy load required classes with error handling
+            begin
+              require 'vagrant-ssh-config-manager/ssh_info_extractor'
+              require 'vagrant-ssh-config-manager/file_manager'
+              require 'vagrant-ssh-config-manager/include_manager'
+            rescue LoadError => e
+              @logger.error("Failed to load required classes: #{e.message}")
+              machine.ui.warn("SSH config manager: Failed to load required components, skipping SSH config refresh")
+              return
+            end
 
             # Extract SSH information
             extractor = SshInfoExtractor.new(machine)
@@ -42,30 +50,22 @@ module VagrantPlugins
               return
             end
 
-            ssh_info = extractor.extract_ssh_info
-            unless ssh_info
-              @logger.warn("Could not extract SSH info for machine: #{machine.name}")
-              return
-            end
+            # Create file manager and include manager
+            file_manager = FileManager.new(config)
+            include_manager = IncludeManager.new(config)
 
-            # Generate unique host name for project isolation
-            manager = SshConfigManager.new(machine, config)
-            host_name = manager.send(:generate_isolated_host_name, machine.name)
-            ssh_info['Host'] = host_name
-
-            # Check if we need to refresh the SSH config
-            refresh_needed = check_if_refresh_needed(machine, manager, host_name, ssh_info)
-
-            if refresh_needed
-              # Update SSH entry
-              if manager.update_ssh_entry(ssh_info)
-                machine.ui.info("SSH config refreshed for machine '#{machine.name}' after provisioning")
-                @logger.info("SSH config refreshed due to provisioning changes")
-              else
-                machine.ui.warn("Failed to refresh SSH config entry for machine: #{machine.name}")
-              end
+            # Refresh SSH config file (regenerate it)
+            # Provisioning might have changed SSH configuration
+            if file_manager.write_ssh_config_file(machine)
+              host_name = file_manager.send(:generate_host_name, machine)
+              machine.ui.info("SSH config file refreshed for machine '#{machine.name}' after provisioning")
+              @logger.info("SSH config file refreshed due to provisioning")
+              
+              # Ensure Include directive is managed
+              include_manager.manage_include_directive
             else
-              @logger.debug("SSH config refresh not needed for machine: #{machine.name}")
+              machine.ui.warn("Failed to refresh SSH config file for machine: #{machine.name}")
+              @logger.warn("Failed to refresh SSH config file for #{machine.name}")
             end
 
           rescue => e
@@ -74,94 +74,6 @@ module VagrantPlugins
             
             # Don't fail the vagrant provision process, just warn
             machine.ui.warn("SSH config manager encountered an error during refresh: #{e.message}")
-          end
-        end
-
-        def check_if_refresh_needed(machine, manager, host_name, new_ssh_info)
-          # Always refresh after provisioning as network configuration might have changed
-          # Provisioning could involve:
-          # - Installing new SSH keys
-          # - Changing SSH daemon configuration
-          # - Modifying network settings
-          # - Adding/removing users
-          # - Changing firewall rules that affect SSH
-
-          # Check if entry exists
-          unless manager.ssh_entry_exists?(host_name)
-            @logger.info("SSH entry doesn't exist, will be created")
-            return true
-          end
-
-          # Get existing entry for comparison
-          existing_entries = manager.get_project_ssh_entries
-          existing_entry = existing_entries.find { |entry| entry['Host'] == host_name }
-          
-          unless existing_entry
-            @logger.info("Could not find existing SSH entry, will refresh")
-            return true
-          end
-
-          # Check for differences in critical SSH parameters
-          if ssh_configs_different?(existing_entry, new_ssh_info)
-            @logger.info("SSH configuration changes detected, refresh needed")
-            return true
-          end
-
-          # Check if provisioning might have affected SSH
-          if provisioning_affects_ssh?(machine)
-            @logger.info("Provisioning might have affected SSH, refreshing as precaution")
-            return true
-          end
-
-          false
-        end
-
-        def ssh_configs_different?(existing, new_config)
-          # Compare key SSH configuration parameters that might change during provisioning
-          important_keys = %w[HostName Port User IdentityFile ProxyCommand StrictHostKeyChecking UserKnownHostsFile]
-          
-          important_keys.any? do |key|
-            existing_value = existing[key]
-            new_value = new_config[key]
-            
-            # Normalize values for comparison
-            existing_value = existing_value.to_s.strip if existing_value
-            new_value = new_value.to_s.strip if new_value
-            
-            existing_value != new_value
-          end
-        end
-
-        def provisioning_affects_ssh?(machine)
-          # Heuristics to determine if provisioning might have affected SSH
-          # This is conservative - when in doubt, refresh
-          
-          begin
-            # Check if any provisioners might affect SSH
-            machine.config.vm.provisioners.each do |provisioner|
-              case provisioner.type
-              when :shell
-                # Shell provisioners might change SSH configuration
-                return true if provisioner.config.path&.include?('ssh') || 
-                              provisioner.config.inline&.include?('ssh')
-              when :ansible, :ansible_local
-                # Ansible often configures SSH
-                return true
-              when :puppet, :chef
-                # Configuration management tools often manage SSH
-                return true
-              when :docker
-                # Docker provisioning might affect networking
-                return true
-              end
-            end
-            
-            # If we can't determine, err on the side of caution
-            true
-          rescue => e
-            @logger.debug("Error checking provisioner types: #{e.message}")
-            # If we can't check, assume provisioning might affect SSH
-            true
           end
         end
       end

@@ -9,9 +9,6 @@ module VagrantPlugins
       # Extract SSH information from Vagrant's internal APIs
       # This replicates what 'vagrant ssh-config' does but using internal methods
       def extract_ssh_info
-        # Handle edge cases for non-SSH-capable boxes
-        return nil unless machine_supports_ssh?
-        
         begin
           ssh_info = @machine.ssh_info
           return nil if ssh_info.nil?
@@ -22,23 +19,31 @@ module VagrantPlugins
           # Get the SSH configuration similar to what vagrant ssh-config provides
           config = build_ssh_config(ssh_info)
           
-          @logger.info("Extracted SSH info for machine: #{@machine.name}")
+          @logger.info("Extracted SSH info for machine: #{@machine.name}") if @logger
           config
         rescue Vagrant::Errors::SSHNotReady => e
-          @logger.debug("SSH not ready for machine #{@machine.name}: #{e.message}")
+          @logger.debug("SSH not ready for machine #{@machine.name}: #{e.message}") if @logger
           nil
         rescue Vagrant::Errors::SSHUnavailable => e
-          @logger.debug("SSH unavailable for machine #{@machine.name}: #{e.message}")
+          @logger.debug("SSH unavailable for machine #{@machine.name}: #{e.message}") if @logger
           nil
         rescue => e
-          @logger.warn("Failed to extract SSH info for machine #{@machine.name}: #{e.message}")
+          @logger.warn("Failed to extract SSH info for machine #{@machine.name}: #{e.message}") if @logger
           nil
         end
       end
 
       # Check if the machine supports SSH with comprehensive validation
       def ssh_capable?
-        machine_supports_ssh? && valid_ssh_info?(@machine.ssh_info) rescue false
+        # Simplified check - if machine is running and has SSH info, assume SSH is available
+        @machine && 
+        @machine.state && 
+        @machine.state.id == :running && 
+        @machine.ssh_info &&
+        ssh_communicator?
+      rescue => e
+        @logger.debug("SSH capability check failed: #{e.message}") if @logger
+        false
       end
 
       # Comprehensive check for SSH support
