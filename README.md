@@ -31,8 +31,6 @@ gem build vagrant-ssh-config-manager.gemspec
 vagrant plugin install vagrant-ssh-config-manager-*.gem
 ```
 
-> **For developers**: See [DEVELOPMENT.md](DEVELOPMENT.md) for detailed build and development instructions.
-
 ## Quick Start
 
 1. Install the plugin
@@ -60,7 +58,7 @@ end
 
 After `vagrant up`, you can connect with:
 ```bash
-ssh vagrant-a1b2c3d4-web  # Project hash + machine name
+ssh vagrant-web  # Project + machine name
 ```
 
 ## Configuration
@@ -69,13 +67,16 @@ All configuration options are available in your `Vagrantfile`:
 
 ```ruby
 Vagrant.configure("2") do |config|
-  config.sshconfigmanager.enabled = true                    # Enable/disable plugin (default: true)
-  config.sshconfigmanager.ssh_conf_file = "~/.ssh/config"   # SSH config file path (default: ~/.ssh/config)
-  config.sshconfigmanager.auto_remove_on_destroy = true     # Remove entries on destroy (default: true)
-  config.sshconfigmanager.update_on_reload = true           # Update entries on reload (default: true)
-  config.sshconfigmanager.refresh_on_provision = true       # Refresh entries on provision (default: true)
-  config.sshconfigmanager.keep_config_on_halt = true        # Keep entries when halted (default: true)
-  config.sshconfigmanager.project_isolation = true          # Use project-based naming (default: true)
+  config.sshconfigmanager.enabled = true                        # Enable/disable plugin (default: true)
+  config.sshconfigmanager.ssh_config_dir = "~/.ssh/config.d/vagrant" # Directory for individual SSH config files (default)
+  config.sshconfigmanager.manage_includes = false               # Manage Include directive in main SSH config (default: false)
+  config.sshconfigmanager.auto_create_dir = true                # Auto-create SSH config dir if missing (default: true)
+  config.sshconfigmanager.cleanup_empty_dir = true              # Remove empty SSH config dir when no VMs remain (default: true)
+  config.sshconfigmanager.auto_remove_on_destroy = true         # Remove SSH entries on VM destroy (default: true)
+  config.sshconfigmanager.update_on_reload = true               # Update SSH entries on VM reload (default: true)
+  config.sshconfigmanager.refresh_on_provision = true           # Refresh SSH entries on VM provision (default: true)
+  config.sshconfigmanager.keep_config_on_halt = true            # Keep SSH entries when VM is halted (default: true)
+  config.sshconfigmanager.project_isolation = true              # Use project-specific naming (default: true)
 end
 ```
 
@@ -88,12 +89,11 @@ end
 | `manage_includes` | Boolean | `false` | Automatically manage Include directive in main SSH config |
 | `auto_create_dir` | Boolean | `true` | Automatically create SSH config directory if it doesn't exist |
 | `cleanup_empty_dir` | Boolean | `true` | Remove empty SSH config directory when no VMs remain |
-| `ssh_conf_file` | String | `~/.ssh/config` | Path to main SSH config file (legacy option) |
 | `auto_remove_on_destroy` | Boolean | `true` | Remove SSH entries when VM is destroyed |
 | `update_on_reload` | Boolean | `true` | Update SSH entries when VM is reloaded |
 | `refresh_on_provision` | Boolean | `true` | Refresh SSH entries when VM is provisioned |
 | `keep_config_on_halt` | Boolean | `true` | Keep SSH entries when VM is halted/suspended |
-| `project_isolation` | Boolean | `true` | Use project-specific naming for SSH entries |
+| `project_isolation` | Boolean | `true` | Use project-specific naming for SSH entries.<br>Set to `false` if using together with `vagrant-hostmanager`.<br>**Be mindful of hostname collisions!** |
 
 ## How It Works
 
@@ -177,7 +177,7 @@ Include ~/.ssh/config.d/vagrant/*.conf
 
 ```ruby
 Vagrant.configure("2") do |config|
-  config.vm.box = "ubuntu/focal64"
+  config.vm.box = "generic/debian12"
   
   config.vm.define "web" do |web|
     web.vm.network "private_network", ip: "192.168.33.10"
@@ -192,17 +192,8 @@ end
 Connect to machines:
 ```bash
 vagrant up
-ssh vagrant-a1b2c3d4-web
-ssh vagrant-a1b2c3d4-db
-```
-
-### Custom SSH Config Location
-
-```ruby
-Vagrant.configure("2") do |config|
-  config.sshconfigmanager.ssh_conf_file = "~/.ssh/vagrant_config"
-  # ... rest of config
-end
+ssh vagrant-web
+ssh vagrant-db
 ```
 
 ### Disable for Specific Environments
@@ -213,18 +204,6 @@ Vagrant.configure("2") do |config|
   config.sshconfigmanager.enabled = ENV['VAGRANT_ENV'] != 'production'
   # ... rest of config
 end
-```
-
-### Custom Naming Strategy
-
-While the plugin uses project isolation by default, you can work with the generated names:
-
-```bash
-# Find your project's SSH entries
-grep -n "Host vagrant-" ~/.ssh/config.d/vagrant-*
-
-# Or list all Vagrant-managed entries
-ssh -F ~/.ssh/config vagrant-<TAB><TAB>  # If your shell supports completion
 ```
 
 ## Troubleshooting
@@ -252,11 +231,8 @@ chmod 700 ~/.ssh
 ```
 
 #### Concurrent Access Issues
-The plugin uses file locking to prevent corruption, but if you see timeout errors:
-```bash
-# Check for processes holding locks
-lsof ~/.ssh/config
-```
+The plugin uses separate ssh config file for each of the servers... there should be no concurrency issues by design.  
+
 
 ### Debugging
 
@@ -273,10 +249,10 @@ If you need to manually clean up SSH config entries:
 
 ```bash
 # Remove all Vagrant-managed entries
-rm ~/.ssh/config.d/vagrant-*
+rm ~/.ssh/config.d/vagrant/*
 
 # Remove include directive from main config
-sed -i '/# === Vagrant SSH Config Manager ===/,/# === End Vagrant SSH Config Manager ===/d' ~/.ssh/config
+sed -i '/# BEGIN vagrant-ssh-config-manager/,/# END vagrant-ssh-config-manager/d' ~/.ssh/config
 ```
 
 ## Compatibility
