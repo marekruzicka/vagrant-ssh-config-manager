@@ -25,10 +25,11 @@ vagrant plugin install vagrant-ssh-config-manager
 ```bash
 git clone https://github.com/your-username/vagrant-ssh-config-manager.git
 cd vagrant-ssh-config-manager
-bundle install
-bundle exec rake build
-vagrant plugin install pkg/vagrant-ssh-config-manager-*.gem
+gem build vagrant-ssh-config-manager.gemspec
+vagrant plugin install vagrant-ssh-config-manager-*.gem
 ```
+
+> **For developers**: See [DEVELOPMENT.md](DEVELOPMENT.md) for detailed build and development instructions.
 
 ## Quick Start
 
@@ -243,45 +244,21 @@ rm ~/.ssh/config.d/vagrant-*
 sed -i '/# === Vagrant SSH Config Manager ===/,/# === End Vagrant SSH Config Manager ===/d' ~/.ssh/config
 ```
 
-## Development
+## Contributing
 
-### Running Tests
+We welcome contributions! Please see [DEVELOPMENT.md](DEVELOPMENT.md) for:
 
-```bash
-bundle install
-bundle exec rspec
-```
+- Development setup and build process
+- Testing guidelines
+- Code style requirements
+- Pull request process
 
-### Code Structure
-
-```
-lib/
-├── vagrant-ssh-config-manager.rb           # Main entry point
-└── vagrant-ssh-config-manager/
-    ├── plugin.rb                          # Plugin registration
-    ├── config.rb                          # Configuration class
-    ├── ssh_info_extractor.rb              # SSH info extraction
-    ├── ssh_config_manager.rb              # Core SSH config management
-    ├── file_locker.rb                     # File locking mechanism
-    ├── version.rb                         # Version constant
-    └── action/                            # Vagrant action hooks
-        ├── up.rb
-        ├── destroy.rb
-        ├── reload.rb
-        ├── halt.rb
-        └── provision.rb
-```
-
-### Contributing
-
+Quick contribution steps:
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes
-4. Add tests for your changes
-5. Ensure all tests pass (`bundle exec rspec`)
-6. Commit your changes (`git commit -am 'Add amazing feature'`)
-7. Push to the branch (`git push origin feature/amazing-feature`)
-8. Create a Pull Request
+2. Create a feature branch
+3. Make your changes with tests
+4. Follow the development guide for testing and building
+5. Submit a pull request
 
 ## Compatibility
 

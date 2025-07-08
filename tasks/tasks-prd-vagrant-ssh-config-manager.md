@@ -70,3 +70,10 @@
   - [x] 7.4 Create unit tests for configuration validation
   - [x] 7.5 Create integration tests for full plugin workflow
   - [x] 7.6 Create README with installation and usage instructions
+- [x] 8.0 Simplify Project Dependencies
+  - [x] 8.1 Remove integration tests that require Vagrant dependency
+  - [x] 8.2 Remove or simplify unit tests that mock Vagrant APIs heavily
+  - [x] 8.3 Keep only basic unit tests for core functionality (file operations, locking, config)
+  - [x] 8.4 Update test dependencies to remove Vagrant-specific testing gems
+  - [x] 8.5 Update DEVELOPMENT.md to reflect simplified testing approach
+  - [x] 8.6 Ensure gem can be built and basic functionality tested without Vagrant

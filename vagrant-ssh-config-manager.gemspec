@@ -5,11 +5,11 @@ require "vagrant-ssh-config-manager/version"
 Gem::Specification.new do |spec|
   spec.name          = "vagrant-ssh-config-manager"
   spec.version       = VagrantPlugins::SshConfigManager::VERSION
-  spec.authors       = ["Vagrant SSH Config Manager Team"]
-  spec.email         = ["team@example.com"]
+  spec.authors       = ["Marek Ruzicka"]
+  spec.email         = ["marek.ruzicka@glide.sk"]
 
   spec.summary       = "Vagrant plugin that automatically manages SSH configurations"
-  spec.description   = "A Vagrant plugin that automatically manages SSH configurations by leveraging Vagrant's internal SSH knowledge. Creates and maintains SSH config entries when VMs are started and cleans them up when VMs are destroyed, with environment isolation and file locking support."
+  spec.description   = "A Vagrant plugin that automatically manages SSH configurations. Creates and maintains SSH config entries when VMs are started and cleans them up when VMs are destroyed, with environment isolation and file locking support."
   spec.homepage      = "https://github.com/example/vagrant-ssh-config-manager"
   spec.license       = "MIT"
 
@@ -33,9 +33,6 @@ Gem::Specification.new do |spec|
   spec.bindir        = "exe"
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
-
-  # Runtime dependencies
-  spec.add_dependency "vagrant", "~> 2.0"
 
   # Development dependencies
   spec.add_development_dependency "bundler", "~> 2.0"
