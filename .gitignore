@@ -2,3 +2,4 @@ vendor
 .github/instructions
 test_file
 vagrant-ssh-config-manager-*.gem
+Gemfile.lock
