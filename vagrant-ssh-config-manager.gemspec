@@ -10,8 +10,12 @@ Gem::Specification.new do |spec|
 
   spec.summary       = "Vagrant plugin that automatically manages SSH configurations"
   spec.description   = "A Vagrant plugin that automatically manages SSH configurations. Creates and maintains SSH config entries when VMs are started and cleans them up when VMs are destroyed, with environment isolation and file locking support."
-  spec.homepage      = "https://github.com/marekruzicka/vagrant-ssh-config-manager.git"
+  spec.homepage      = "https://github.com/marekruzicka/vagrant-ssh-config-manager"
   spec.license       = "MIT"
+
+  spec.metadata["documentation_uri"] = "https://rubydoc.info/github/marekruzicka/vagrant-ssh-config-manager/main"
+  spec.metadata["source_code_uri"]   = "https://github.com/marekruzicka/vagrant-ssh-config-manager"
+  spec.metadata["changelog_uri"]     = "https://github.com/marekruzicka/vagrant-ssh-config-manager/blob/main/CHANGELOG.md"
 
   # Specify which files should be added to the gem when it is released.
   # The `git ls-files -z` loads the files in the RubyGems gemspec, but not Git submodules.
