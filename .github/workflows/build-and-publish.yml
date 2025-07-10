@@ -19,7 +19,7 @@ on:
       - 'docs/**'
       - '.gitignore'
       - '.github/**'
-      - '.ai'
+      - '.ai/**'
 
 jobs:
   test:
