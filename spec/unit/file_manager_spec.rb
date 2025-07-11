@@ -28,6 +28,16 @@ module VagrantPlugins
         env_struct = Struct.new(:root_path)
         @env = env_struct.new(Pathname.new(root_path))
       end
+
+      # Simulate Vagrant's ssh_info for tests
+      def ssh_info
+        {
+          host: '192.168.33.10',
+          port: 22,
+          username: 'vagrant',
+          private_key_path: ['/tmp/test-key']
+        }
+      end
     end
   end
 end
