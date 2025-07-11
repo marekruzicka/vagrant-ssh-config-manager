@@ -158,27 +158,6 @@ module VagrantPlugins
         end
       end
 
-      # Safe host name generation with fallbacks
-      def generate_host_name
-        # Generate a unique host name based on project directory and machine name
-        project_name = File.basename(@machine.env.root_path)
-        machine_name = @machine.name.to_s
-
-        # Sanitize names for SSH config
-        project_name = sanitize_name(project_name)
-        machine_name = sanitize_name(machine_name)
-
-        host_name = "#{project_name}-#{machine_name}"
-
-        # Ensure the host name is not empty after sanitization
-        host_name = "vagrant-#{@machine.id || 'unknown'}" if host_name.strip.empty? || host_name == '-'
-
-        host_name
-      rescue StandardError => e
-        @logger.debug("Host name generation failed: #{e.message}")
-        "vagrant-#{@machine.name || 'unknown'}"
-      end
-
       # Normalize SSH config data to ensure consistency
       def normalize_ssh_config(config)
         normalized = {}

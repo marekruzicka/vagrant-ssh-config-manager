@@ -25,16 +25,8 @@ module VagrantPlugins
 
       def initialize(name, root_path = '/tmp/test-project')
         @name = name
-        @env = OpenStruct.new(root_path: Pathname.new(root_path))
-      end
-
-      def ssh_info
-        {
-          host: '192.168.33.10',
-          port: 22,
-          username: 'vagrant',
-          private_key_path: ['/tmp/test-key']
-        }
+        Env = Struct.new(:root_path)
+        @env = Env.new(Pathname.new(root_path))
       end
     end
   end
@@ -48,7 +40,8 @@ module Log4r
     end
 
     %w[debug info warn error].each do |level|
-      define_method(level) { |msg| }
+      define_method(level) do |msg|
+      end
     end
   end
 end
@@ -62,7 +55,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::FileManager do
 
   after do
     # Clean up test directory
-    FileUtils.rm_rf(config.ssh_config_dir) if Dir.exist?(config.ssh_config_dir)
+    FileUtils.rm_rf(config.ssh_config_dir)
   end
 
   describe '#initialize' do

@@ -413,17 +413,6 @@ module VagrantPlugins
       end
       alias get_project_hosts project_hosts
 
-      # Get all hosts managed by this project
-      def get_project_hosts
-        hosts = []
-        project_id = generate_project_identifier
-
-        # Search in our include file
-        hosts.concat(extract_hosts_from_file(@include_file_path, project_id)) if File.exist?(@include_file_path)
-
-        hosts
-      end
-
       # Check if a host belongs to this project
       def project_owns_host?(host_name)
         project_id = generate_project_identifier
@@ -458,7 +447,7 @@ module VagrantPlugins
       alias get_project_stats project_stats
 
       # Migrate old naming scheme to new project-based scheme
-      def migrate_to_project_naming(old_host_names)
+      def migrate_to_project_naming?(old_host_names)
         return false if old_host_names.nil? || old_host_names.empty?
 
         migrated_count = 0
@@ -491,6 +480,7 @@ module VagrantPlugins
         @logger.info("Migrated #{migrated_count} hosts to project-based naming")
         migrated_count.positive?
       end
+      alias migrate_to_project_naming migrate_to_project_naming?
 
       # List all Vagrant projects detected in SSH config
       def list_vagrant_projects
@@ -523,6 +513,8 @@ module VagrantPlugins
 
         projects
       end
+
+      # Private API for helper methods
 
       private
 
@@ -700,6 +692,9 @@ module VagrantPlugins
         ]
       }.freeze
 
+      # Helper methods should be private
+      private
+
       # Add comprehensive comment markers to SSH entry
       def add_comment_markers_to_entry(ssh_config_data, machine_name = nil)
         return ssh_config_data unless ssh_config_data
@@ -871,7 +866,7 @@ module VagrantPlugins
       end
 
       # Clean up orphaned or corrupted markers
-      def cleanup_comment_markers(file_path)
+      def cleanup_comment_markers?(file_path)
         return false unless File.exist?(file_path)
 
         lines = File.readlines(file_path)
@@ -907,6 +902,7 @@ module VagrantPlugins
 
         cleaned_count.positive?
       end
+      alias cleanup_comment_markers cleanup_comment_markers?
 
       def format_comment_block(template_name, variables = {})
         template = COMMENT_TEMPLATES[template_name]
@@ -1073,36 +1069,6 @@ module VagrantPlugins
       rescue StandardError => e
         @logger.warn("Failed to create main config backup: #{e.message}")
         nil
-      end
-
-      def add_include_directive_with_validation
-        # Read existing content
-        existing_content = File.exist?(@ssh_config_file) ? File.read(@ssh_config_file) : ''
-
-        # Check if our include directive already exists
-        return true if existing_content.include?("Include #{@include_file_path}")
-
-        # Find the best place to insert the include directive
-        lines = existing_content.lines
-        insert_position = find_include_insert_position(lines)
-
-        # Prepare include directive with comments
-        include_lines = [
-          '# Vagrant SSH Config Manager - Auto-generated include',
-          "Include #{@include_file_path}",
-          ''
-        ]
-
-        # Insert at the determined position
-        new_lines = lines.dup
-        include_lines.reverse.each do |line|
-          new_lines.insert(insert_position, "#{line}\n")
-        end
-
-        # Write updated content
-        File.write(@ssh_config_file, new_lines.join)
-
-        @logger.debug("Added include directive to SSH config file at position #{insert_position}")
       end
 
       def remove_include_directive_with_validation

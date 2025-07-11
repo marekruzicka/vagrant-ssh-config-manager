@@ -110,12 +110,15 @@ module VagrantPlugins
       end
 
       # Validate SSH config file content
-      def validate_ssh_config_content(content)
+      # Returns true if the content contains required SSH config elements
+      def validate_ssh_config_content?(content)
         return false if content.nil? || content.empty?
 
         # Basic validation - check for required SSH config elements
         content.include?('Host ') && content.include?('HostName ') && content.include?('Port ')
       end
+
+      alias_method :validate_ssh_config_content, :validate_ssh_config_content?
 
       # Detect and clean up orphaned SSH config files
       def cleanup_orphaned_files

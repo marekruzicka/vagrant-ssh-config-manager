@@ -68,11 +68,12 @@ RSpec.configure do |config|
       File.exist?(@ssh_config_file) ? File.read(@ssh_config_file) : ''
     end
 
-    # Get SSH config entries from config.d directory
-    def get_include_files
+    # List SSH config entries from config.d directory
+    def include_files
       return [] unless File.directory?(@config_d_dir)
 
       Dir.glob(File.join(@config_d_dir, 'vagrant-*')).sort
     end
+    alias get_include_files include_files
   end)
 end
