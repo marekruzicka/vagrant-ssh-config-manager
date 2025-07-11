@@ -2,6 +2,6 @@
 
 module VagrantPlugins
   module SshConfigManager
-    VERSION = '1.0.0-pre'
+    VERSION = '1.0.0.pre'
   end
 end

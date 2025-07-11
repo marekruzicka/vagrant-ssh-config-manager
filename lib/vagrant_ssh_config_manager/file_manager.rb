@@ -22,6 +22,11 @@ module VagrantPlugins
         "#{project_hash}-#{vm_name}.conf"
       end
 
+      # Generate full file path for a machine's SSH config under ssh_config_dir
+      def generate_file_path(machine)
+        File.join(@config.ssh_config_dir, generate_filename(machine))
+      end
+
       # Return full path for a machine's SSH config file
       def file_path(machine)
         generate_file_path(machine)
