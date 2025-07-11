@@ -22,9 +22,11 @@ Layout/LineLength:
   Enabled: false
   Max: 120
 
-# Disable accessor naming cop for now (get_ prefix methods)
+# Disable accessor naming cop for spec files (get_ prefix methods allowed in tests)
 Naming/AccessorMethodName:
   Enabled: true
+  Exclude:
+    - 'spec/**/*'
 
 # Require documentation comments on public classes/modules
 Style/Documentation:
@@ -49,3 +51,12 @@ Gemspec/RequireMFA:
   Enabled: false
 Gemspec/DevelopmentDependencies:
   Enabled: false
+
+# Spec-specific configurations - allow more flexible patterns in tests
+Lint/NoReturnInBeginEndBlocks:
+  Exclude:
+    - 'spec/**/*'
+
+Naming/PredicateMethod:
+  Exclude:
+    - 'spec/**/*'
