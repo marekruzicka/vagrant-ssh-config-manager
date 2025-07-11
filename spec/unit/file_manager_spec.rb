@@ -53,7 +53,7 @@ module Log4r
   end
 end
 
-require_relative '../../lib/vagrant-ssh-config-manager/file_manager'
+require_relative '../../lib/vagrant_ssh_config_manager/file_manager'
 
 RSpec.describe VagrantPlugins::SshConfigManager::FileManager do
   let(:config) { VagrantPlugins::SshConfigManager::MockConfig.new }

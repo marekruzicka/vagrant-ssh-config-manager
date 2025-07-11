@@ -5,8 +5,8 @@ require 'fileutils'
 require 'tmpdir'
 
 # Only load classes that don't depend on Vagrant
-require_relative '../lib/vagrant-ssh-config-manager/version'
-require_relative '../lib/vagrant-ssh-config-manager/file_locker'
+require_relative '../lib/vagrant_ssh_config_manager/version'
+require_relative '../lib/vagrant_ssh_config_manager/file_locker'
 
 # NOTE: We don't load ssh_config_manager here as it depends on Vagrant
 # Instead, we'll test core functionality independently

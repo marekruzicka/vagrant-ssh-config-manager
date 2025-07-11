@@ -1,12 +1,18 @@
-```ruby
+# frozen_string_literal: true
+
+require 'vagrant'
+
 module VagrantPlugins
-  module SSHConfigManager
-    class Plugin < Vagrant.plugin("2")
-      name "SSH Config Manager"
+  module SshConfigManager
+    class Plugin < Vagrant.plugin('2')
+      name 'SSH Config Manager'
       description <<-DESC
-      This plugin manages SSH configurations for Vagrant machines.
+      This plugin automatically manages SSH configurations by leveraging Vagrant's#{' '}
+      internal SSH knowledge. It creates and maintains SSH config entries when VMs#{' '}
+      are started and cleans them up when VMs are destroyed.
       DESC
 
+      # Register the configuration class
       config :sshconfigmanager do
         require 'vagrant_ssh_config_manager/config'
         Config
@@ -50,4 +56,3 @@ module VagrantPlugins
     end
   end
 end
-```

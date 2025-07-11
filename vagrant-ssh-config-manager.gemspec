@@ -2,7 +2,7 @@
 
 lib = File.expand_path('lib', __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'vagrant-ssh-config-manager/version'
+require 'vagrant_ssh_config_manager/version'
 
 Gem::Specification.new do |spec|
   spec.name          = 'vagrant-ssh-config-manager'

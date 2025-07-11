@@ -33,9 +33,9 @@ module VagrantPlugins
 
           # Lazy load required classes with error handling
           begin
-            require 'vagrant-ssh-config-manager/ssh_info_extractor'
-            require 'vagrant-ssh-config-manager/file_manager'
-            require 'vagrant-ssh-config-manager/include_manager'
+            require 'vagrant_ssh_config_manager/ssh_info_extractor'
+            require 'vagrant_ssh_config_manager/file_manager'
+            require 'vagrant_ssh_config_manager/include_manager'
           rescue LoadError => e
             @logger.error("Failed to load required classes: #{e.message}")
             machine.ui.warn('SSH config manager: Failed to load required components, skipping SSH config refresh')
