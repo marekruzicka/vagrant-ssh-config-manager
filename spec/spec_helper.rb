@@ -4,6 +4,21 @@ require 'rspec'
 require 'fileutils'
 require 'tmpdir'
 
+# Mock Log4r for all tests
+module Log4r
+  class Logger
+    def initialize(name)
+      @name = name
+    end
+
+    %w[debug info warn error].each do |level|
+      define_method(level) do |msg|
+        # no-op logging for tests
+      end
+    end
+  end
+end
+
 # Only load classes that don't depend on Vagrant
 require_relative '../lib/vagrant_ssh_config_manager/version'
 require_relative '../lib/vagrant_ssh_config_manager/file_locker'
