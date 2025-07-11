@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module VagrantPlugins
   module SshConfigManager
     module Action
@@ -14,7 +16,7 @@ module VagrantPlugins
           # Handle SSH config for halt/suspend operations
           if machine
             config = machine.config.sshconfigmanager
-            handle_ssh_config_for_halt(machine, config, env) if config && config.enabled && config.keep_config_on_halt
+            handle_ssh_config_for_halt(machine, config, env) if config&.enabled && config.keep_config_on_halt
           end
 
           # Call the next middleware (actual halt/suspend)

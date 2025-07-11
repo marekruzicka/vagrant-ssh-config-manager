@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'fcntl'
 require 'timeout'
 
@@ -73,11 +75,11 @@ module VagrantPlugins
         end
       rescue Timeout::Error
         cleanup_lock_file
-        raise LockTimeoutError.new("Timeout waiting for lock on #{@file_path} (waited #{timeout}s)")
+        raise LockTimeoutError, "Timeout waiting for lock on #{@file_path} (waited #{timeout}s)"
       rescue StandardError => e
         cleanup_lock_file
         @logger.error("Failed to acquire lock on #{@file_path}: #{e.message}")
-        raise LockAcquisitionError.new("Could not acquire lock: #{e.message}")
+        raise LockAcquisitionError, "Could not acquire lock: #{e.message}"
       end
 
       def release_lock

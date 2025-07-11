@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'fileutils'
 require 'pathname'
 require 'digest'
@@ -488,7 +490,7 @@ module VagrantPlugins
         end
 
         @logger.info("Migrated #{migrated_count} hosts to project-based naming")
-        migrated_count > 0
+        migrated_count.positive?
       end
 
       # List all Vagrant projects detected in SSH config
@@ -536,7 +538,7 @@ module VagrantPlugins
           machine_part = parts[-1]
 
           available_length = max_length - project_part.length - 1
-          if available_length > 0
+          if available_length.positive?
             truncated_machine = machine_part[0...available_length]
             return "#{project_part}-#{truncated_machine}"
           end
@@ -621,7 +623,7 @@ module VagrantPlugins
 
       def determine_ssh_config_file
         # Use custom path if specified, otherwise default to ~/.ssh/config
-        if @config && @config.ssh_conf_file
+        if @config&.ssh_conf_file
           File.expand_path(@config.ssh_conf_file)
         else
           File.expand_path('~/.ssh/config')
@@ -899,12 +901,12 @@ module VagrantPlugins
           cleaned_lines << line unless skip_until_end
         end
 
-        if cleaned_count > 0
+        if cleaned_count.positive?
           File.write(file_path, cleaned_lines.join)
           @logger.info("Cleaned up #{cleaned_count} orphaned comment sections")
         end
 
-        cleaned_count > 0
+        cleaned_count.positive?
       end
 
       # File locking helper methods
@@ -1420,7 +1422,7 @@ module VagrantPlugins
         end
 
         @logger.info("Migrated #{migrated_count} hosts to project-based naming")
-        migrated_count > 0
+        migrated_count.positive?
       end
 
       # List all Vagrant projects detected in SSH config
@@ -1468,7 +1470,7 @@ module VagrantPlugins
           machine_part = parts[-1]
 
           available_length = max_length - project_part.length - 1
-          if available_length > 0
+          if available_length.positive?
             truncated_machine = machine_part[0...available_length]
             return "#{project_part}-#{truncated_machine}"
           end
@@ -1553,7 +1555,7 @@ module VagrantPlugins
 
       def determine_ssh_config_file
         # Use custom path if specified, otherwise default to ~/.ssh/config
-        if @config && @config.ssh_conf_file
+        if @config&.ssh_conf_file
           File.expand_path(@config.ssh_conf_file)
         else
           File.expand_path('~/.ssh/config')
@@ -1831,12 +1833,12 @@ module VagrantPlugins
           cleaned_lines << line unless skip_until_end
         end
 
-        if cleaned_count > 0
+        if cleaned_count.positive?
           File.write(file_path, cleaned_lines.join)
           @logger.info("Cleaned up #{cleaned_count} orphaned comment sections")
         end
 
-        cleaned_count > 0
+        cleaned_count.positive?
       end
 
       def format_comment_block(template_name, variables = {})
@@ -1889,7 +1891,7 @@ module VagrantPlugins
           next unless ssh_config_data && ssh_config_data['Host']
 
           # Add separator between entries
-          content_lines << '' if index > 0
+          content_lines << '' if index.positive?
 
           # Add entry with comment markers
           machine_name = extract_machine_name_from_host(ssh_config_data['Host'])
@@ -1925,7 +1927,7 @@ module VagrantPlugins
         # Insert at the determined position
         new_lines = lines.dup
         include_lines.reverse.each do |line|
-          new_lines.insert(insert_position, line + "\n")
+          new_lines.insert(insert_position, "#{line}\n")
         end
 
         # Write updated content
@@ -2027,7 +2029,7 @@ module VagrantPlugins
         # Insert at the determined position
         new_lines = lines.dup
         include_lines.reverse.each do |line|
-          new_lines.insert(insert_position, line + "\n")
+          new_lines.insert(insert_position, "#{line}\n")
         end
 
         # Write updated content

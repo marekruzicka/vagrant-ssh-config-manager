@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'vagrant-ssh-config-manager/version'
 require 'vagrant-ssh-config-manager/plugin'
 

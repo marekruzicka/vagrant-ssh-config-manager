@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 # Test core SSH config file manipulation without Vagrant dependencies

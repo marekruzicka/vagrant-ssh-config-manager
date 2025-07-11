@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'fileutils'
 require 'digest'
 require 'tempfile'
@@ -44,7 +46,7 @@ module VagrantPlugins
         content << "  Port #{ssh_info[:port]}"
         content << "  User #{ssh_info[:username]}"
 
-        if ssh_info[:private_key_path] && ssh_info[:private_key_path].first
+        if ssh_info[:private_key_path]&.first
           content << "  IdentityFile #{ssh_info[:private_key_path].first}"
           content << '  IdentitiesOnly yes'
         end
@@ -172,7 +174,7 @@ module VagrantPlugins
         end
 
         # Clean up empty directory if configured
-        cleanup_empty_directory if @config.cleanup_empty_dir && removed_count > 0
+        cleanup_empty_directory if @config.cleanup_empty_dir && removed_count.positive?
 
         removed_count
       end

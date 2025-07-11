@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module VagrantPlugins
   module SshConfigManager
     module Action
@@ -14,7 +16,7 @@ module VagrantPlugins
           # Handle SSH config removal before destroying the machine
           if machine
             config = machine.config.sshconfigmanager
-            handle_ssh_config_removal(machine, config) if config && config.enabled && config.auto_remove_on_destroy
+            handle_ssh_config_removal(machine, config) if config&.enabled && config.auto_remove_on_destroy
           end
 
           # Call the next middleware (actual destroy)

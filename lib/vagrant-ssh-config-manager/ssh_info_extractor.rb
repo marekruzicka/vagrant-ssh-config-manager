@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module VagrantPlugins
   module SshConfigManager
     class SshInfoExtractor
@@ -18,29 +20,28 @@ module VagrantPlugins
         # Get the SSH configuration similar to what vagrant ssh-config provides
         config = build_ssh_config(ssh_info)
 
-        @logger.info("Extracted SSH info for machine: #{@machine.name}") if @logger
+        @logger&.info("Extracted SSH info for machine: #{@machine.name}")
         config
       rescue Vagrant::Errors::SSHNotReady => e
-        @logger.debug("SSH not ready for machine #{@machine.name}: #{e.message}") if @logger
+        @logger&.debug("SSH not ready for machine #{@machine.name}: #{e.message}")
         nil
       rescue Vagrant::Errors::SSHUnavailable => e
-        @logger.debug("SSH unavailable for machine #{@machine.name}: #{e.message}") if @logger
+        @logger&.debug("SSH unavailable for machine #{@machine.name}: #{e.message}")
         nil
       rescue StandardError => e
-        @logger.warn("Failed to extract SSH info for machine #{@machine.name}: #{e.message}") if @logger
+        @logger&.warn("Failed to extract SSH info for machine #{@machine.name}: #{e.message}")
         nil
       end
 
       # Check if the machine supports SSH with comprehensive validation
       def ssh_capable?
         # Simplified check - if machine is running and has SSH info, assume SSH is available
-        @machine &&
-          @machine.state &&
+        @machine&.state &&
           @machine.state.id == :running &&
           @machine.ssh_info &&
           ssh_communicator?
       rescue StandardError => e
-        @logger.debug("SSH capability check failed: #{e.message}") if @logger
+        @logger&.debug("SSH capability check failed: #{e.message}")
         false
       end
 
@@ -283,7 +284,7 @@ module VagrantPlugins
 
       # Add comprehensive SSH options support
       def add_comprehensive_ssh_options(config, ssh_info)
-        return unless ssh_info[:config] && ssh_info[:config].ssh
+        return unless ssh_info[:config]&.ssh
 
         ssh_config = ssh_info[:config].ssh
 

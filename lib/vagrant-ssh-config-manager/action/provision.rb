@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module VagrantPlugins
   module SshConfigManager
     module Action
@@ -18,7 +20,7 @@ module VagrantPlugins
 
           # Check if plugin is enabled
           config = machine.config.sshconfigmanager
-          return unless config && config.enabled && config.refresh_on_provision
+          return unless config&.enabled && config.refresh_on_provision
 
           # Handle SSH config file refresh after provisioning
           handle_ssh_config_refresh(machine, config)

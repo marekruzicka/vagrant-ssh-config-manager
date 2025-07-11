@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module VagrantPlugins
   module SshConfigManager
     module Action
@@ -19,7 +21,7 @@ module VagrantPlugins
 
           # Check if plugin is enabled
           config = machine.config.sshconfigmanager
-          return unless config && config.enabled
+          return unless config&.enabled
 
           @logger.info("SSH Config Manager: Creating SSH config file for machine: #{machine.name}")
 
