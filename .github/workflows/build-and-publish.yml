@@ -1,13 +1,8 @@
 name: Build and Publish Gem
 
 on:
-  # Manual trigger with version input
+  # Manual trigger
   workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version to publish (e.g., 0.8.4)'
-        required: true
-        type: string
       
   # Automatic trigger on merge to main
   push:
@@ -96,35 +91,11 @@ jobs:
         ruby-version: '3.3'
         bundler-cache: true
         
-    - name: Determine version and update if needed
+    - name: Get current version
       id: version
       run: |
-        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-          # Manual trigger - use provided version
-          TARGET_VERSION="${{ github.event.inputs.version }}"
-          echo "Manually triggered with version: $TARGET_VERSION"
-          
-          # Update version file
-          sed -i "s/VERSION = \"[^\"]*\"/VERSION = \"$TARGET_VERSION\"/" lib/vagrant-ssh-config-manager/version.rb
-          
-          # Configure git and commit version change
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          
-          if git diff --quiet lib/vagrant-ssh-config-manager/version.rb; then
-            echo "Version file already contains $TARGET_VERSION"
-          else
-            git add lib/vagrant-ssh-config-manager/version.rb
-            git commit -m "ci: bump version to $TARGET_VERSION [skip ci]"
-            git push origin main
-          fi
-          
-        else
-          # Automatic trigger - use current version from file
-          TARGET_VERSION=$(ruby -r './lib/vagrant-ssh-config-manager/version.rb' -e 'puts VagrantPlugins::SshConfigManager::VERSION')
-          echo "Automatically triggered with current version: $TARGET_VERSION"
-        fi
-        
+        TARGET_VERSION=$(ruby -r './lib/vagrant-ssh-config-manager/version.rb' -e 'puts VagrantPlugins::SshConfigManager::VERSION')
+        echo "Using current version: $TARGET_VERSION"
         echo "target_version=$TARGET_VERSION" >> $GITHUB_OUTPUT
         echo "TARGET_VERSION=$TARGET_VERSION" >> $GITHUB_ENV
         
