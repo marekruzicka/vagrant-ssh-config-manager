@@ -22,10 +22,9 @@ module VagrantPlugins
         "#{project_hash}-#{vm_name}.conf"
       end
 
-      # Get full path for VM SSH config file
-      def get_file_path(machine)
-        filename = generate_filename(machine)
-        File.join(@config.ssh_config_dir, filename)
+      # Return full path for a machine's SSH config file
+      def file_path(machine)
+        generate_file_path(machine)
       end
 
       # Generate SSH config content for a VM
@@ -64,7 +63,7 @@ module VagrantPlugins
       def write_ssh_config_file(machine)
         return false unless @config.enabled
 
-        file_path = get_file_path(machine)
+        file_path = file_path(machine)
         content = generate_ssh_config_content(machine)
         return false unless content
 
@@ -85,7 +84,7 @@ module VagrantPlugins
 
       # Remove SSH config file for VM
       def remove_ssh_config_file(machine)
-        file_path = get_file_path(machine)
+        file_path = file_path(machine)
 
         begin
           if File.exist?(file_path)
@@ -107,7 +106,7 @@ module VagrantPlugins
 
       # Check if SSH config file exists for VM
       def ssh_config_file_exists?(machine)
-        File.exist?(get_file_path(machine))
+        File.exist?(file_path(machine))
       end
 
       # Validate SSH config file content
@@ -179,12 +178,14 @@ module VagrantPlugins
         removed_count
       end
 
-      # Get all config files in the directory
-      def get_all_config_files
-        return [] unless Dir.exist?(@config.ssh_config_dir)
-
-        Dir.glob(File.join(@config.ssh_config_dir, '*.conf'))
+      # Return list of all config files
+      def all_config_files
+        Dir.glob(File.join(@config.ssh_config_dir, '*.conf')).sort
       end
+
+      # Backward compatibility aliases
+      alias get_file_path file_path
+      alias get_all_config_files all_config_files
 
       private
 

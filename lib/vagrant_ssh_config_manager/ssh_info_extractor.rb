@@ -268,7 +268,7 @@ module VagrantPlugins
 
         # Add common SSH options for Vagrant VMs
         config['StrictHostKeyChecking'] = 'no'
-        config['UserKnownHostsFile'] = '/dev/null'
+        config['UserKnownHostsFile'] = File::NULL
         config['PasswordAuthentication'] = 'no'
         config['LogLevel'] = 'FATAL'
 

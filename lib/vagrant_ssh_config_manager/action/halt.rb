@@ -3,6 +3,7 @@
 module VagrantPlugins
   module SshConfigManager
     module Action
+      # Handles SSH config update when a Vagrant machine is halted or suspended
       class Halt
         def initialize(app, env)
           @app = app

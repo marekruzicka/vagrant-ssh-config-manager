@@ -1,0 +1,34 @@
+# Custom RuboCop configuration for vagrant-ssh-config-manager
+
+AllCops:
+  NewCops: enable
+
+# Disable metrics and complexity cops for large methods/classes
+Metrics/BlockLength:
+  Enabled: false
+Metrics/MethodLength:
+  Enabled: false
+Metrics/AbcSize:
+  Enabled: false
+Metrics/CyclomaticComplexity:
+  Enabled: false
+Metrics/PerceivedComplexity:
+  Enabled: false
+Metrics/ClassLength:
+  Enabled: false
+Metrics/BlockNesting:
+  Enabled: false
+Layout/LineLength:
+  Max: 120
+
+# Disable accessor naming cop for now (get_ prefix methods)
+Naming/AccessorMethodName:
+  Enabled: true
+
+# Require documentation comments on public classes/modules
+Style/Documentation:
+  Enabled: false
+
+# Ensure super is called in initializers
+Lint/MissingSuper:
+  Enabled: true

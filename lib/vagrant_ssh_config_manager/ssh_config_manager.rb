@@ -82,8 +82,8 @@ module VagrantPlugins
         false
       end
 
-      # Get all SSH entries managed by this project
-      def get_project_ssh_entries
+      # List all SSH entries managed by this project
+      def project_ssh_entries
         return [] unless File.exist?(@include_file_path)
 
         entries = []
@@ -108,7 +108,8 @@ module VagrantPlugins
         []
       end
 
-      # Advanced include file management methods
+      # alias old name for backward compatibility if needed
+      alias get_project_ssh_entries project_ssh_entries
 
       # Get include file status and information
       def include_file_info
@@ -320,21 +321,21 @@ module VagrantPlugins
         }
       end
 
-      # Get all include directives in main config
-      def get_include_directives
-        return [] unless File.exist?(@ssh_config_file)
+      # Fetch Include directives from the SSH include file
+      def include_directives
+        return [] unless File.exist?(@include_file_path)
 
-        includes = []
+        directives = []
         line_number = 0
 
-        File.readlines(@ssh_config_file).each do |line|
+        File.readlines(@include_file_path).each do |line|
           line_number += 1
           line_stripped = line.strip
 
           next unless line_stripped.start_with?('Include ')
 
           include_path = line_stripped.sub(/^Include\s+/, '')
-          includes << {
+          directives << {
             line_number: line_number,
             path: include_path,
             absolute_path: File.expand_path(include_path),
@@ -343,11 +344,12 @@ module VagrantPlugins
           }
         end
 
-        includes
+        directives
       rescue StandardError => e
         @logger.warn("Failed to get include directives: #{e.message}")
         []
       end
+      alias get_include_directives include_directives
 
       # Check for conflicts with existing SSH config
       def check_host_conflicts(host_name)
@@ -358,7 +360,7 @@ module VagrantPlugins
         conflicts.concat(find_host_in_file(@ssh_config_file, host_name, 'main config'))
 
         # Check in other include files
-        get_include_directives.each do |include_info|
+        include_directives.each do |include_info|
           next if include_info[:is_ours] || !include_info[:exists]
 
           conflicts.concat(find_host_in_file(
@@ -399,6 +401,18 @@ module VagrantPlugins
         truncate_host_name(host_name)
       end
 
+      # List project host names
+      def project_hosts
+        hosts = []
+        project_id = generate_project_identifier
+
+        # Search in our include file
+        hosts.concat(extract_hosts_from_file(@include_file_path, project_id)) if File.exist?(@include_file_path)
+
+        hosts
+      end
+      alias get_project_hosts project_hosts
+
       # Get all hosts managed by this project
       def get_project_hosts
         hosts = []
@@ -429,17 +443,19 @@ module VagrantPlugins
       end
 
       # Get project statistics
-      def get_project_stats
+      # Gather statistics about the project SSH entries
+      def project_stats
         {
           project_name: @project_name,
           project_id: generate_project_identifier,
           project_path: @machine.env.root_path.to_s,
           include_file: @include_file_path,
-          hosts_count: get_project_hosts.count,
+          hosts_count: project_hosts.count,
           include_file_exists: File.exist?(@include_file_path),
           include_file_size: File.exist?(@include_file_path) ? File.size(@include_file_path) : 0
         }
       end
+      alias get_project_stats project_stats
 
       # Migrate old naming scheme to new project-based scheme
       def migrate_to_project_naming(old_host_names)
@@ -630,11 +646,11 @@ module VagrantPlugins
       def ensure_ssh_config_structure
         # Create SSH directory if it doesn't exist
         ssh_dir = File.dirname(@ssh_config_file)
-        FileUtils.mkdir_p(ssh_dir, mode: 0o700) unless File.exist?(ssh_dir)
+        FileUtils.mkdir_p(ssh_dir, mode: 0o700)
 
         # Create config.d directory if it doesn't exist
         config_d_dir = File.dirname(@include_file_path)
-        FileUtils.mkdir_p(config_d_dir, mode: 0o700) unless File.exist?(config_d_dir)
+        FileUtils.mkdir_p(config_d_dir, mode: 0o700)
 
         # Create main SSH config file if it doesn't exist
         return if File.exist?(@ssh_config_file)
@@ -910,7 +926,7 @@ module VagrantPlugins
         when 'StrictHostKeyChecking'
           value == 'no' ? 'Skip host key verification for Vagrant VMs' : nil
         when 'UserKnownHostsFile'
-          value == '/dev/null' ? 'Ignore known hosts for Vagrant VMs' : nil
+          value == File::NULL ? 'Ignore known hosts for Vagrant VMs' : nil
         when 'PasswordAuthentication'
           value == 'no' ? 'Use key-based authentication only' : nil
         when 'LogLevel'

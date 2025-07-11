@@ -3,6 +3,7 @@
 require 'vagrant_ssh_config_manager/version'
 require 'vagrant_ssh_config_manager/plugin'
 
+# Main entrypoint module for SSH Config Manager plugin
 module VagrantPlugins
   module SshConfigManager
     # Main plugin entry point

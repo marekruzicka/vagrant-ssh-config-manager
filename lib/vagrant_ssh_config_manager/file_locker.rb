@@ -5,6 +5,7 @@ require 'timeout'
 
 module VagrantPlugins
   module SshConfigManager
+    # Handles file locking for SSH config files to prevent concurrent conflicts
     class FileLocker
       # Default timeout for acquiring locks (in seconds)
       DEFAULT_TIMEOUT = 30

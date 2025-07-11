@@ -89,9 +89,9 @@ module VagrantPlugins
 
         if should_remove_include_directive?
           remove_include_directive
-        elsif Dir.exist?(@config.ssh_config_dir) && !Dir.entries(@config.ssh_config_dir).select do |f|
-          f.end_with?('.conf')
-        end.empty?
+        elsif Dir.exist?(@config.ssh_config_dir) && Dir.entries(@config.ssh_config_dir).any? do |f|
+          File.file?(File.join(@config.ssh_config_dir, f)) && f.end_with?(".conf")
+        end
           add_include_directive
         end
       end

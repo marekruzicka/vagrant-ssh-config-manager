@@ -3,6 +3,7 @@
 module VagrantPlugins
   module SshConfigManager
     module Action
+      # Handles SSH config cleanup when a Vagrant machine is destroyed
       class Destroy
         def initialize(app, env)
           @app = app
