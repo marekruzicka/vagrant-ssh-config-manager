@@ -1,54 +1,54 @@
-require "vagrant"
+require 'vagrant'
 
 module VagrantPlugins
   module SshConfigManager
-    class Plugin < Vagrant.plugin("2")
-      name "SSH Config Manager"
+    class Plugin < Vagrant.plugin('2')
+      name 'SSH Config Manager'
       description <<-DESC
-      This plugin automatically manages SSH configurations by leveraging Vagrant's 
-      internal SSH knowledge. It creates and maintains SSH config entries when VMs 
+      This plugin automatically manages SSH configurations by leveraging Vagrant's#{' '}
+      internal SSH knowledge. It creates and maintains SSH config entries when VMs#{' '}
       are started and cleans them up when VMs are destroyed.
       DESC
 
       # Register the configuration class
       config :sshconfigmanager do
-        require "vagrant-ssh-config-manager/config"
+        require 'vagrant-ssh-config-manager/config'
         Config
       end
 
       # Hook into various Vagrant actions
       action_hook(:ssh_config_manager, :machine_action_up) do |hook|
-        require "vagrant-ssh-config-manager/action/up"
+        require 'vagrant-ssh-config-manager/action/up'
         hook.after(Vagrant::Action::Builtin::WaitForCommunicator, Action::Up)
       end
 
       action_hook(:ssh_config_manager, :machine_action_destroy) do |hook|
-        require "vagrant-ssh-config-manager/action/destroy"
+        require 'vagrant-ssh-config-manager/action/destroy'
         hook.before(Vagrant::Action::Builtin::DestroyConfirm, Action::Destroy)
       end
 
       action_hook(:ssh_config_manager, :machine_action_reload) do |hook|
-        require "vagrant-ssh-config-manager/action/reload"
+        require 'vagrant-ssh-config-manager/action/reload'
         hook.after(Vagrant::Action::Builtin::WaitForCommunicator, Action::Reload)
       end
 
       action_hook(:ssh_config_manager, :machine_action_halt) do |hook|
-        require "vagrant-ssh-config-manager/action/halt"
+        require 'vagrant-ssh-config-manager/action/halt'
         hook.before(Vagrant::Action::Builtin::GracefulHalt, Action::Halt)
       end
 
       action_hook(:ssh_config_manager, :machine_action_suspend) do |hook|
-        require "vagrant-ssh-config-manager/action/halt"
+        require 'vagrant-ssh-config-manager/action/halt'
         hook.before(Vagrant::Action::Builtin::Suspend, Action::Halt)
       end
 
       action_hook(:ssh_config_manager, :machine_action_resume) do |hook|
-        require "vagrant-ssh-config-manager/action/up"
+        require 'vagrant-ssh-config-manager/action/up'
         hook.after(Vagrant::Action::Builtin::Resume, Action::Up)
       end
 
       action_hook(:ssh_config_manager, :machine_action_provision) do |hook|
-        require "vagrant-ssh-config-manager/action/provision"
+        require 'vagrant-ssh-config-manager/action/provision'
         hook.after(Vagrant::Action::Builtin::Provision, Action::Provision)
       end
     end

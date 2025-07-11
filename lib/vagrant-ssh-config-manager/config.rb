@@ -3,22 +3,17 @@ require 'vagrant'
 
 module VagrantPlugins
   module SshConfigManager
-    class Config < Vagrant.plugin("2", :config)
+    class Config < Vagrant.plugin('2', :config)
       # Plugin enabled/disabled flag
       attr_accessor :enabled
 
       # SSH config directory configuration
       attr_accessor :ssh_config_dir
-      attr_accessor :manage_includes
-      attr_accessor :auto_create_dir
-      attr_accessor :cleanup_empty_dir
+      attr_accessor :manage_includes, :auto_create_dir, :cleanup_empty_dir, :update_on_reload, :refresh_on_provision,
+                    :keep_config_on_halt, :project_isolation
 
       # Additional configuration options
       attr_accessor :auto_remove_on_destroy
-      attr_accessor :update_on_reload
-      attr_accessor :refresh_on_provision
-      attr_accessor :keep_config_on_halt
-      attr_accessor :project_isolation
 
       def initialize
         @enabled = Vagrant::Plugin::V2::Config::UNSET_VALUE
@@ -36,7 +31,9 @@ module VagrantPlugins
       def finalize!
         # Set default values for unset configuration options
         @enabled = true if @enabled == Vagrant::Plugin::V2::Config::UNSET_VALUE
-        @ssh_config_dir = File.expand_path("~/.ssh/config.d/vagrant") if @ssh_config_dir == Vagrant::Plugin::V2::Config::UNSET_VALUE
+        if @ssh_config_dir == Vagrant::Plugin::V2::Config::UNSET_VALUE
+          @ssh_config_dir = File.expand_path('~/.ssh/config.d/vagrant')
+        end
         @manage_includes = false if @manage_includes == Vagrant::Plugin::V2::Config::UNSET_VALUE
         @auto_create_dir = true if @auto_create_dir == Vagrant::Plugin::V2::Config::UNSET_VALUE
         @cleanup_empty_dir = true if @cleanup_empty_dir == Vagrant::Plugin::V2::Config::UNSET_VALUE
@@ -48,48 +45,44 @@ module VagrantPlugins
 
         # Expand and validate file paths
         @ssh_config_dir = File.expand_path(@ssh_config_dir) if @ssh_config_dir.is_a?(String)
-        
+
         # Ensure SSH config directory exists if auto_create_dir is enabled
         ensure_ssh_config_directory if @auto_create_dir && @ssh_config_dir
       end
 
-      def validate(machine)
+      def validate(_machine)
         errors = _detected_errors
 
         # Validate enabled flag
-        unless [true, false].include?(@enabled)
-          errors << "sshconfigmanager.enabled must be true or false"
-        end
+        errors << 'sshconfigmanager.enabled must be true or false' unless [true, false].include?(@enabled)
 
         # Validate SSH config directory
         if @ssh_config_dir
-          unless @ssh_config_dir.is_a?(String)
-            errors << "sshconfigmanager.ssh_config_dir must be a string path"
-          else
+          if @ssh_config_dir.is_a?(String)
             # Validate directory path format
             expanded_path = File.expand_path(@ssh_config_dir)
-            if expanded_path.include?("..") || expanded_path.include?("//")
+            if expanded_path.include?('..') || expanded_path.include?('//')
               errors << "sshconfigmanager.ssh_config_dir contains invalid path components: #{@ssh_config_dir}"
             end
 
             # Check if the directory exists or can be created
-            unless File.directory?(@ssh_config_dir)
-              if @auto_create_dir
-                begin
-                  # Try to create the directory to validate the path
-                  FileUtils.mkdir_p(@ssh_config_dir, mode: 0700)
-                rescue => e
-                  errors << "sshconfigmanager.ssh_config_dir cannot be created: #{e.message}"
-                end
-              else
-                errors << "sshconfigmanager.ssh_config_dir does not exist and auto_create_dir is disabled: #{@ssh_config_dir}"
-              end
-            else
+            if File.directory?(@ssh_config_dir)
               # Check directory permissions
               unless File.readable?(@ssh_config_dir) && File.writable?(@ssh_config_dir)
                 errors << "sshconfigmanager.ssh_config_dir is not readable/writable: #{@ssh_config_dir}"
               end
+            elsif @auto_create_dir
+              begin
+                # Try to create the directory to validate the path
+                FileUtils.mkdir_p(@ssh_config_dir, mode: 0o700)
+              rescue StandardError => e
+                errors << "sshconfigmanager.ssh_config_dir cannot be created: #{e.message}"
+              end
+            else
+              errors << "sshconfigmanager.ssh_config_dir does not exist and auto_create_dir is disabled: #{@ssh_config_dir}"
             end
+          else
+            errors << 'sshconfigmanager.ssh_config_dir must be a string path'
           end
         end
 
@@ -106,13 +99,11 @@ module VagrantPlugins
         }
 
         boolean_options.each do |option_name, value|
-          unless [true, false].include?(value)
-            errors << "sshconfigmanager.#{option_name} must be true or false"
-          end
+          errors << "sshconfigmanager.#{option_name} must be true or false" unless [true, false].include?(value)
         end
 
         # Return validation results
-        { "SSH Config Manager" => errors }
+        { 'SSH Config Manager' => errors }
       end
 
       # Get configuration summary for debugging
@@ -176,15 +167,15 @@ module VagrantPlugins
         return true if File.directory?(@ssh_config_dir)
 
         begin
-          FileUtils.mkdir_p(@ssh_config_dir, mode: 0700)
+          FileUtils.mkdir_p(@ssh_config_dir, mode: 0o700)
           true
-        rescue => e
+        rescue StandardError
           false
         end
       end
 
-      # Get the appropriate manager instance 
-      def get_ssh_manager_instance(machine)
+      # Get the appropriate manager instance
+      def get_ssh_manager_instance(_machine)
         # Use separate file approach with FileManager
         require_relative 'file_manager'
         FileManager.new(self)
