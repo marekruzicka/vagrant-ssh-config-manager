@@ -10,7 +10,7 @@ module VagrantPlugins
     # Mock config class for testing SshConfigManager
     class MockConfigForSshConfigManager
       attr_accessor :ssh_config_dir, :manage_includes, :cleanup_empty_dir,
-                    :auto_create_dir, :auto_remove_on_destroy
+                    :auto_create_dir, :auto_remove_on_destroy, :ssh_conf_file
 
       def initialize
         @ssh_config_dir = File.join(Dir.mktmpdir('vagrant-ssh-config-test'), 'config.d')
@@ -18,6 +18,7 @@ module VagrantPlugins
         @cleanup_empty_dir = true
         @auto_create_dir = true
         @auto_remove_on_destroy = true
+        @ssh_conf_file = nil  # Add the missing attribute
       end
     end
 

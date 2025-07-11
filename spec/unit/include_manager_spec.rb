@@ -151,6 +151,87 @@ module VagrantPlugins
         "Include #{relative_path}"
       end
 
+      def should_remove_include_directive?
+        return false unless Dir.exist?(@config_dir)
+        return false unless File.directory?(@config_dir)
+        
+        # Check if directory has any .conf files
+        conf_files = Dir.glob(File.join(@config_dir, '*.conf'))
+        conf_files.empty?
+      end
+
+      def validate_main_config
+        ssh_config = File.expand_path('~/.ssh/config')
+        return true unless File.exist?(ssh_config)
+        
+        begin
+          content = File.read(ssh_config)
+          # Basic validation - check for common syntax issues
+          lines = content.split("\n")
+          lines.each_with_index do |line, index|
+            line = line.strip
+            next if line.empty? || line.start_with?('#')
+            
+            # Validate basic SSH config syntax
+            if line.match?(/^\s*\S+\s+\S/)
+              # Valid key-value pair or Host declaration
+              true
+            else
+              @logger&.warn("SSH config syntax warning at line #{index + 1}: #{line}")
+            end
+          end
+          true
+        rescue StandardError => e
+          @logger&.error("Failed to validate SSH config: #{e.message}")
+          true  # Return true to not block operations
+        end
+      end
+
+      def ssh_config_file
+        File.expand_path('~/.ssh/config')
+      end
+
+      def include_directive_exists?
+        ssh_config_has_include_directive?
+      end
+
+      def add_include_directive
+        ensure_include_directive_in_ssh_config
+      end
+
+      def remove_include_directive
+        remove_include_directive_from_ssh_config
+      end
+
+      def manage_include_directive
+        if should_remove_include_directive?
+          remove_include_directive
+        else
+          add_include_directive
+        end
+      end
+
+      def find_include_location(content)
+        lines = content.split("\n")
+        
+        # Find the first non-comment, non-empty line
+        lines.each_with_index do |line, index|
+          trimmed = line.strip
+          next if trimmed.empty? || trimmed.start_with?('#')
+          
+          # If it's an Include directive, insert before it
+          if trimmed.match?(/^\s*Include\s+/i)
+            return index
+          end
+          
+          # If it's any other directive, insert before it
+          return index
+        end
+        
+        # If only comments/empty lines, append at the end
+        lines.length
+      end
+
       private
 
       def add_include_directive_to_ssh_config(ssh_config_path, current_content)
