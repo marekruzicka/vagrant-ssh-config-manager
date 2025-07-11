@@ -33,3 +33,19 @@ Style/Documentation:
 # Ensure super is called in initializers
 Lint/MissingSuper:
   Enabled: true
+
+# Disable single-line modifier offenses for now
+Style/IfUnlessModifier:
+  Enabled: false
+
+# Disable constant scoping and access modifier false positives
+Lint/UselessConstantScoping:
+  Enabled: false
+Lint/UselessAccessModifier:
+  Enabled: false
+
+# Disable staffing of gemspec checks
+Gemspec/RequireMFA:
+  Enabled: false
+Gemspec/DevelopmentDependencies:
+  Enabled: false

@@ -25,8 +25,8 @@ module VagrantPlugins
 
       def initialize(name, root_path = '/tmp/test-project')
         @name = name
-        Env = Struct.new(:root_path)
-        @env = Env.new(Pathname.new(root_path))
+        env_struct = Struct.new(:root_path)
+        @env = env_struct.new(Pathname.new(root_path))
       end
     end
   end
@@ -41,6 +41,7 @@ module Log4r
 
     %w[debug info warn error].each do |level|
       define_method(level) do |msg|
+        # no-op logging
       end
     end
   end

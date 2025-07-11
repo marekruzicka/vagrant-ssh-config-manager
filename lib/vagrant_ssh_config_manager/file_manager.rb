@@ -118,7 +118,7 @@ module VagrantPlugins
         content.include?('Host ') && content.include?('HostName ') && content.include?('Port ')
       end
 
-      alias_method :validate_ssh_config_content, :validate_ssh_config_content?
+      alias validate_ssh_config_content validate_ssh_config_content?
 
       # Detect and clean up orphaned SSH config files
       def cleanup_orphaned_files
