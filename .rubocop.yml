@@ -19,6 +19,7 @@ Metrics/ClassLength:
 Metrics/BlockNesting:
   Enabled: false
 Layout/LineLength:
+  Enabled: false
   Max: 120
 
 # Disable accessor naming cop for now (get_ prefix methods)
