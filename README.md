@@ -25,7 +25,7 @@ vagrant plugin install vagrant-ssh-config-manager
 ### Install from Source
 
 ```bash
-git clone https://github.com/your-username/vagrant-ssh-config-manager.git
+git clone https://github.com/marekruzicka/vagrant-ssh-config-manager.git
 cd vagrant-ssh-config-manager
 gem build vagrant-ssh-config-manager.gemspec
 vagrant plugin install vagrant-ssh-config-manager-*.gem
