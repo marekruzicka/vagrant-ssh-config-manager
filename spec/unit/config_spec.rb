@@ -10,7 +10,7 @@ module Vagrant
     module V2
       module Config
         UNSET_VALUE = Object.new.freeze
-        
+
         # Base class for Vagrant configuration
         class Base
           def _detected_errors
@@ -21,7 +21,7 @@ module Vagrant
     end
   end
 
-  def self.plugin(version, component)
+  def self.plugin(_version, component)
     case component
     when :config
       Vagrant::Plugin::V2::Config::Base
@@ -202,7 +202,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::Config do
 
   after do
     # Clean up any created directories
-    FileUtils.rm_rf(test_ssh_dir) if File.exist?(test_ssh_dir)
+    FileUtils.rm_rf(test_ssh_dir)
   end
 
   describe '#initialize' do
@@ -271,7 +271,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::Config do
 
       it 'creates the SSH config directory' do
         expect(File.directory?(test_ssh_dir)).to be true
-        
+
         # Check directory permissions
         stat = File.stat(test_ssh_dir)
         expect(stat.mode & 0o777).to eq(0o700)
@@ -288,7 +288,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::Config do
       it 'returns no errors' do
         config.ssh_config_dir = test_ssh_dir
         FileUtils.mkdir_p(test_ssh_dir, mode: 0o700)
-        
+
         result = config.validate(machine)
         expect(result['SSH Config Manager']).to be_empty
       end
@@ -306,14 +306,14 @@ RSpec.describe VagrantPlugins::SshConfigManager::Config do
     context 'with invalid ssh_config_dir' do
       it 'validates non-string directory' do
         config.ssh_config_dir = 123
-        
+
         result = config.validate(machine)
         expect(result['SSH Config Manager']).to include('sshconfigmanager.ssh_config_dir must be a string path')
       end
 
       it 'validates directory with invalid path components' do
         config.ssh_config_dir = '/path/../with/invalid/components'
-        
+
         result = config.validate(machine)
         expect(result['SSH Config Manager'].any? { |error| error.include?('invalid path components') }).to be true
       end
@@ -321,7 +321,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::Config do
       it 'validates non-existent directory when auto_create_dir is disabled' do
         config.ssh_config_dir = '/non/existent/path'
         config.auto_create_dir = false
-        
+
         result = config.validate(machine)
         expect(result['SSH Config Manager'].any? { |error| error.include?('does not exist and auto_create_dir is disabled') }).to be true
       end
@@ -330,10 +330,10 @@ RSpec.describe VagrantPlugins::SshConfigManager::Config do
         # Create directory but make it read-only
         FileUtils.mkdir_p(test_ssh_dir, mode: 0o500)
         config.ssh_config_dir = test_ssh_dir
-        
+
         result = config.validate(machine)
         expect(result['SSH Config Manager'].any? { |error| error.include?('not readable/writable') }).to be true
-        
+
         # Restore permissions for cleanup
         File.chmod(0o700, test_ssh_dir)
       end
@@ -342,14 +342,14 @@ RSpec.describe VagrantPlugins::SshConfigManager::Config do
     context 'with invalid boolean options' do
       it 'validates manage_includes' do
         config.manage_includes = 'invalid'
-        
+
         result = config.validate(machine)
         expect(result['SSH Config Manager']).to include('sshconfigmanager.manage_includes must be true or false')
       end
 
       it 'validates auto_create_dir' do
         config.auto_create_dir = 'invalid'
-        
+
         result = config.validate(machine)
         expect(result['SSH Config Manager']).to include('sshconfigmanager.auto_create_dir must be true or false')
       end
@@ -361,10 +361,10 @@ RSpec.describe VagrantPlugins::SshConfigManager::Config do
         config.refresh_on_provision = 'invalid'
         config.keep_config_on_halt = 'invalid'
         config.project_isolation = 'invalid'
-        
+
         result = config.validate(machine)
         errors = result['SSH Config Manager']
-        
+
         expect(errors).to include('sshconfigmanager.cleanup_empty_dir must be true or false')
         expect(errors).to include('sshconfigmanager.auto_remove_on_destroy must be true or false')
         expect(errors).to include('sshconfigmanager.update_on_reload must be true or false')
@@ -380,7 +380,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::Config do
 
     it 'returns configuration as hash' do
       hash = config.to_hash
-      
+
       expect(hash).to be_a(Hash)
       expect(hash[:enabled]).to be true
       expect(hash[:ssh_config_dir]).to be_a(String)
@@ -420,7 +420,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::Config do
       it 'respects auto_remove_on_destroy for destroy action' do
         config.auto_remove_on_destroy = true
         expect(config.enabled_for_action?(:destroy)).to be true
-        
+
         config.auto_remove_on_destroy = false
         expect(config.enabled_for_action?(:destroy)).to be false
       end
@@ -428,7 +428,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::Config do
       it 'respects update_on_reload for reload action' do
         config.update_on_reload = true
         expect(config.enabled_for_action?(:reload)).to be true
-        
+
         config.update_on_reload = false
         expect(config.enabled_for_action?(:reload)).to be false
       end
@@ -436,7 +436,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::Config do
       it 'respects refresh_on_provision for provision action' do
         config.refresh_on_provision = true
         expect(config.enabled_for_action?(:provision)).to be true
-        
+
         config.refresh_on_provision = false
         expect(config.enabled_for_action?(:provision)).to be false
       end
@@ -445,7 +445,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::Config do
         config.keep_config_on_halt = true
         expect(config.enabled_for_action?(:halt)).to be true
         expect(config.enabled_for_action?(:suspend)).to be true
-        
+
         config.keep_config_on_halt = false
         expect(config.enabled_for_action?(:halt)).to be false
         expect(config.enabled_for_action?(:suspend)).to be false
@@ -463,7 +463,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::Config do
 
     before do
       config.finalize!
-      
+
       # Set some custom values in other config
       other_config.enabled = false
       other_config.ssh_config_dir = '/custom/path'
@@ -472,11 +472,11 @@ RSpec.describe VagrantPlugins::SshConfigManager::Config do
 
     it 'merges configurations preferring other config values' do
       merged = config.merge(other_config)
-      
-      expect(merged.enabled).to be false  # from other_config
-      expect(merged.ssh_config_dir).to eq('/custom/path')  # from other_config
-      expect(merged.manage_includes).to be true  # from other_config
-      
+
+      expect(merged.enabled).to be false # from other_config
+      expect(merged.ssh_config_dir).to eq('/custom/path') # from other_config
+      expect(merged.manage_includes).to be true # from other_config
+
       # Values not set in other_config should come from original
       expect(merged.auto_create_dir).to eq(config.auto_create_dir)
       expect(merged.cleanup_empty_dir).to eq(config.cleanup_empty_dir)
@@ -484,7 +484,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::Config do
 
     it 'preserves original config values when other config has UNSET_VALUE' do
       other_config.auto_create_dir = Vagrant::Plugin::V2::Config::UNSET_VALUE
-      
+
       merged = config.merge(other_config)
       expect(merged.auto_create_dir).to eq(config.auto_create_dir)
     end
@@ -508,7 +508,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::Config do
         config.ssh_config_dir = test_ssh_dir
         expect(config.ensure_ssh_config_directory).to be true
         expect(File.directory?(test_ssh_dir)).to be true
-        
+
         # Check permissions
         stat = File.stat(test_ssh_dir)
         expect(stat.mode & 0o777).to eq(0o700)
@@ -517,17 +517,17 @@ RSpec.describe VagrantPlugins::SshConfigManager::Config do
       it 'returns true if directory already exists' do
         FileUtils.mkdir_p(test_ssh_dir)
         config.ssh_config_dir = test_ssh_dir
-        
+
         expect(config.ensure_ssh_config_directory).to be true
       end
 
       it 'returns false if directory creation fails' do
         # Try to create directory in invalid location
         config.ssh_config_dir = '/invalid/path/that/cannot/be/created'
-        
+
         # Mock FileUtils to raise an error
         allow(FileUtils).to receive(:mkdir_p).and_raise(Errno::EACCES, 'Permission denied')
-        
+
         expect(config.ensure_ssh_config_directory).to be false
       end
     end
@@ -543,11 +543,11 @@ RSpec.describe VagrantPlugins::SshConfigManager::Config do
       file_manager_class = double('FileManager')
       instance = double('file_manager_instance')
       allow(file_manager_class).to receive(:new).with(config).and_return(instance)
-      
+
       # Stub the require to avoid loading the actual file
       allow(config).to receive(:require_relative)
       stub_const('VagrantPlugins::SshConfigManager::FileManager', file_manager_class)
-      
+
       result = config.ssh_manager_instance(machine)
       expect(result).to eq(instance)
     end
@@ -562,31 +562,31 @@ RSpec.describe VagrantPlugins::SshConfigManager::Config do
     it 'allows reading and writing all configuration attributes' do
       config.enabled = false
       expect(config.enabled).to be false
-      
+
       config.ssh_config_dir = '/custom/path'
       expect(config.ssh_config_dir).to eq('/custom/path')
-      
+
       config.manage_includes = true
       expect(config.manage_includes).to be true
-      
+
       config.auto_create_dir = false
       expect(config.auto_create_dir).to be false
-      
+
       config.cleanup_empty_dir = false
       expect(config.cleanup_empty_dir).to be false
-      
+
       config.auto_remove_on_destroy = false
       expect(config.auto_remove_on_destroy).to be false
-      
+
       config.update_on_reload = false
       expect(config.update_on_reload).to be false
-      
+
       config.refresh_on_provision = false
       expect(config.refresh_on_provision).to be false
-      
+
       config.keep_config_on_halt = false
       expect(config.keep_config_on_halt).to be false
-      
+
       config.project_isolation = false
       expect(config.project_isolation).to be false
     end

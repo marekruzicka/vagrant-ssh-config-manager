@@ -21,7 +21,6 @@ end
 
 # Mock the require for log4r in the actual file
 require 'fileutils'
-require 'tempfile'
 
 # Mock the IncludeManager class for testing
 module VagrantPlugins
@@ -65,6 +64,7 @@ module VagrantPlugins
         content ||= begin
           ssh_config = File.expand_path('~/.ssh/config')
           return false unless File.exist?(ssh_config)
+
           File.read(ssh_config)
         end
 
@@ -73,7 +73,7 @@ module VagrantPlugins
           @include_file_path,
           relative_path,
           "#{@config_dir}/*",
-          "#{relative_path.sub('/#{File.basename(@include_file_path)}', '')}/*"
+          "#{relative_path.sub("/#{File.basename(@include_file_path)}", '')}/*"
         ]
 
         include_patterns.any? do |pattern|
@@ -155,15 +155,15 @@ module VagrantPlugins
 
       def add_include_directive_to_ssh_config(ssh_config_path, current_content)
         include_line = get_include_directive_line
-        
-        if current_content.empty?
-          new_content = "#{include_line}\n"
-        else
-          new_content = "#{include_line}\n\n#{current_content}"
-        end
+
+        new_content = if current_content.empty?
+                        "#{include_line}\n"
+                      else
+                        "#{include_line}\n\n#{current_content}"
+                      end
 
         File.write(ssh_config_path, new_content)
-        @logger&.info("Added include directive to SSH config")
+        @logger&.info('Added include directive to SSH config')
         true
       end
 
@@ -183,10 +183,10 @@ module VagrantPlugins
 
         # Clean up extra blank lines
         new_content.gsub!(/\n{3,}/, "\n\n")
-        new_content = new_content.strip + "\n" unless new_content.empty?
+        new_content = "#{new_content.strip}\n" unless new_content.empty?
 
         File.write(ssh_config_path, new_content)
-        @logger&.info("Removed include directive from SSH config")
+        @logger&.info('Removed include directive from SSH config')
         true
       end
     end
@@ -202,17 +202,17 @@ RSpec.describe VagrantPlugins::SshConfigManager::IncludeManager do
 
   before do
     @temp_dir = Dir.mktmpdir('ssh_config_manager_test')
-    
+
     # Set up logger expectations
     allow(logger).to receive(:info)
     allow(logger).to receive(:error)
     allow(logger).to receive(:debug)
-    
+
     # Mock File.expand_path for ~/.ssh/config to use test directory
     allow(File).to receive(:expand_path).and_call_original
     allow(File).to receive(:expand_path).with('~/.ssh/config').and_return(ssh_config_file)
     allow(Dir).to receive(:home).and_return(@temp_dir)
-    
+
     # Ensure SSH directory exists
     FileUtils.mkdir_p(File.dirname(ssh_config_file), mode: 0o700)
     FileUtils.mkdir_p(config_dir, mode: 0o700)
@@ -259,7 +259,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::IncludeManager do
         content = <<~SSH_CONFIG
           # Some comment
           Include #{config.ssh_config_dir}/*.conf
-          
+
           Host example
             HostName example.com
         SSH_CONFIG
@@ -289,7 +289,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::IncludeManager do
 
       it 'returns true without making changes' do
         expect(include_manager.add_include_directive).to be true
-        
+
         content = File.read(ssh_config_file)
         include_count = content.scan(/^Include #{Regexp.escape(config.ssh_config_dir)}/).length
         expect(include_count).to eq(1)
@@ -299,13 +299,13 @@ RSpec.describe VagrantPlugins::SshConfigManager::IncludeManager do
     context 'when SSH config file does not exist' do
       it 'creates file and adds Include directive' do
         expect(include_manager.add_include_directive).to be true
-        
+
         expect(File.exist?(ssh_config_file)).to be true
         content = File.read(ssh_config_file)
         expect(content).to include('# BEGIN vagrant-ssh-config-manager')
         expect(content).to include("Include #{config.ssh_config_dir}/*.conf")
         expect(content).to include('# END vagrant-ssh-config-manager')
-        
+
         # Check file permissions
         stat = File.stat(ssh_config_file)
         expect(stat.mode & 0o777).to eq(0o600)
@@ -325,15 +325,15 @@ RSpec.describe VagrantPlugins::SshConfigManager::IncludeManager do
 
       it 'adds Include directive at the beginning' do
         expect(include_manager.add_include_directive).to be true
-        
+
         content = File.read(ssh_config_file)
         lines = content.lines
-        
+
         # Include should be added at the beginning
         expect(lines[0].strip).to eq('# BEGIN vagrant-ssh-config-manager')
         expect(lines[1]).to include("Include #{config.ssh_config_dir}")
         expect(lines[2].strip).to eq('# END vagrant-ssh-config-manager')
-        
+
         # Original content should be preserved
         expect(content).to include('Host example')
         expect(content).to include('HostName example.com')
@@ -345,7 +345,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::IncludeManager do
         content = <<~SSH_CONFIG
           # Comments at top
           Include ~/.ssh/config.d/other/*
-          
+
           Host example
             HostName example.com
         SSH_CONFIG
@@ -354,14 +354,14 @@ RSpec.describe VagrantPlugins::SshConfigManager::IncludeManager do
 
       it 'places new Include directive before existing ones' do
         expect(include_manager.add_include_directive).to be true
-        
+
         content = File.read(ssh_config_file)
         lines = content.lines
-        
+
         # Our Include should come before existing ones
         vagrant_include_index = lines.find_index { |line| line.include?('vagrant-ssh-config-manager') }
         other_include_index = lines.find_index { |line| line.include?('Include ~/.ssh/config.d/other') }
-        
+
         expect(vagrant_include_index).to be < other_include_index
       end
     end
@@ -401,7 +401,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::IncludeManager do
 
       it 'removes Include directive and markers' do
         expect(include_manager.remove_include_directive).to be true
-        
+
         content = File.read(ssh_config_file)
         expect(content).not_to include('vagrant-ssh-config-manager')
         expect(content).not_to include("Include #{config.ssh_config_dir}")
@@ -509,7 +509,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::IncludeManager do
       content = <<~SSH_CONFIG
         # User SSH config
         # Multiple comment lines
-        
+
         Host example
       SSH_CONFIG
 
@@ -521,7 +521,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::IncludeManager do
       content = <<~SSH_CONFIG
         # Comments
         Include ~/.ssh/config.d/other/*
-        
+
         Host example
       SSH_CONFIG
 
@@ -587,16 +587,16 @@ RSpec.describe VagrantPlugins::SshConfigManager::IncludeManager do
   describe 'atomic operations' do
     it 'creates backup before modifications' do
       File.write(ssh_config_file, 'original content')
-      
+
       include_manager.add_include_directive
-      
+
       # Check if backup was created (though it gets cleaned up on success)
       expect(File.read(ssh_config_file)).to include('vagrant-ssh-config-manager')
     end
 
     it 'writes configuration atomically' do
       File.write(ssh_config_file, 'original content')
-      
+
       # Mock Tempfile to verify atomic write behavior
       temp_file = double('tempfile')
       allow(Tempfile).to receive(:new).and_return(temp_file)
@@ -606,9 +606,9 @@ RSpec.describe VagrantPlugins::SshConfigManager::IncludeManager do
       allow(temp_file).to receive(:unlink)
       allow(File).to receive(:chmod)
       allow(FileUtils).to receive(:mv)
-      
+
       include_manager.add_include_directive
-      
+
       expect(FileUtils).to have_received(:mv).with('/tmp/test', ssh_config_file)
     end
   end

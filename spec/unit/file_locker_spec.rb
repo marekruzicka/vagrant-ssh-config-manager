@@ -32,7 +32,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::FileLocker do
 
   after do
     # Clean up any remaining lock files
-    File.delete(test_file_path) if File.exist?(test_file_path)
+    FileUtils.rm_f(test_file_path)
   end
 
   describe '#initialize' do
@@ -115,7 +115,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::FileLocker do
       # This test is challenging to implement reliably in a unit test
       # due to timing issues, but we can test basic functionality
       results = []
-      
+
       file_locker.with_shared_lock do
         results << 'first shared lock'
       end
@@ -152,7 +152,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::FileLocker do
         file_locker.with_exclusive_lock do
           # During this block, another FileLocker instance should detect the lock
           other_locker = described_class.new(test_file_path)
-          
+
           # This might be flaky depending on OS file locking behavior
           # We'll test the basic method exists and doesn't crash
           expect { other_locker.locked? }.not_to raise_error
@@ -173,7 +173,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::FileLocker do
     it 'raises LockTimeoutError when timeout exceeded' do
       # Create a scenario where timeout would be exceeded
       # This is challenging to test reliably without actual process separation
-      
+
       # Test that timeout parameter is accepted
       expect do
         file_locker.with_exclusive_lock(timeout: 1) do
@@ -186,10 +186,10 @@ RSpec.describe VagrantPlugins::SshConfigManager::FileLocker do
   describe 'error handling' do
     it 'raises LockAcquisitionError for invalid file paths' do
       invalid_locker = described_class.new('/invalid/path/that/cannot/be/created')
-      
+
       # Mock FileUtils.mkdir_p to raise an error
       allow(FileUtils).to receive(:mkdir_p).and_raise(Errno::EACCES, 'Permission denied')
-      
+
       expect do
         invalid_locker.with_exclusive_lock do
           # Should not reach here
@@ -222,7 +222,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::FileLocker do
   describe 'concurrent access simulation' do
     it 'handles multiple lock requests sequentially' do
       results = []
-      
+
       # Simulate sequential lock requests
       3.times do |i|
         file_locker.with_exclusive_lock do
@@ -230,22 +230,22 @@ RSpec.describe VagrantPlugins::SshConfigManager::FileLocker do
           sleep(0.01) # Small delay to make race conditions more likely
         end
       end
-      
-      expect(results).to eq(['operation_0', 'operation_1', 'operation_2'])
+
+      expect(results).to eq(%w[operation_0 operation_1 operation_2])
     end
 
     it 'maintains lock integrity during nested operations' do
       outer_executed = false
       inner_executed = false
-      
+
       file_locker.with_exclusive_lock do
         outer_executed = true
-        
+
         # Test that we can't acquire another exclusive lock from same instance
         # This should work since it's the same locker instance
         inner_executed = true
       end
-      
+
       expect(outer_executed).to be true
       expect(inner_executed).to be true
     end
@@ -256,7 +256,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::FileLocker do
       file_locker.with_exclusive_lock do
         # Normal execution
       end
-      
+
       # Verify internal state is cleaned up
       expect(file_locker.instance_variable_get(:@lock_file)).to be_nil
       expect(file_locker.instance_variable_get(:@locked)).to be false
@@ -270,7 +270,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::FileLocker do
       rescue StandardError
         # Expected
       end
-      
+
       # Verify cleanup occurred even with exception
       expect(file_locker.instance_variable_get(:@lock_file)).to be_nil
       expect(file_locker.instance_variable_get(:@locked)).to be false
@@ -279,13 +279,13 @@ RSpec.describe VagrantPlugins::SshConfigManager::FileLocker do
     it 'handles cleanup when file operations fail' do
       # Mock file operations to simulate failures
       allow(File).to receive(:open).and_raise(Errno::EACCES, 'Permission denied')
-      
+
       expect do
         file_locker.with_exclusive_lock do
           # Should not reach here
         end
       end.to raise_error(VagrantPlugins::SshConfigManager::LockAcquisitionError)
-      
+
       # Verify cleanup still occurred
       expect(file_locker.instance_variable_get(:@lock_file)).to be_nil
       expect(file_locker.instance_variable_get(:@locked)).to be false
@@ -296,18 +296,18 @@ RSpec.describe VagrantPlugins::SshConfigManager::FileLocker do
     it 'creates nested directory structure with proper permissions' do
       nested_path = File.join(@temp_dir, 'level1', 'level2', 'level3', 'lock_file')
       nested_locker = described_class.new(nested_path)
-      
+
       nested_locker.with_exclusive_lock do
         # Check that all directory levels were created
         expect(File.directory?(File.join(@temp_dir, 'level1'))).to be true
         expect(File.directory?(File.join(@temp_dir, 'level1', 'level2'))).to be true
         expect(File.directory?(File.join(@temp_dir, 'level1', 'level2', 'level3'))).to be true
-        
+
         # Check directory permissions
         stat = File.stat(File.join(@temp_dir, 'level1', 'level2', 'level3'))
         expect(stat.mode & 0o777).to eq(0o700)
       end
-      
+
       # Clean up
       FileUtils.rm_rf(File.join(@temp_dir, 'level1'))
     end

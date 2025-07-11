@@ -100,10 +100,10 @@ RSpec.describe VagrantPlugins::SshConfigManager::SshConfigManager do
 
     it 'creates include file with proper content' do
       ssh_config_manager.add_ssh_entry(ssh_config_data)
-      
+
       include_file_path = ssh_config_manager.instance_variable_get(:@include_file_path)
       expect(File.exist?(include_file_path)).to be true
-      
+
       content = File.read(include_file_path)
       expect(content).to include('Host test-host')
       expect(content).to include('HostName 192.168.33.10')
@@ -120,10 +120,10 @@ RSpec.describe VagrantPlugins::SshConfigManager::SshConfigManager do
     it 'handles file creation errors gracefully' do
       # Make directory read-only to simulate permission error
       File.chmod(0o500, config.ssh_config_dir)
-      
+
       result = ssh_config_manager.add_ssh_entry(ssh_config_data)
       expect(result).to be false
-      
+
       # Restore permissions for cleanup
       File.chmod(0o700, config.ssh_config_dir)
     end
@@ -146,7 +146,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::SshConfigManager do
     it 'removes SSH entry successfully' do
       result = ssh_config_manager.remove_ssh_entry('test-host')
       expect(result).to be true
-      
+
       include_file_path = ssh_config_manager.instance_variable_get(:@include_file_path)
       content = File.read(include_file_path)
       expect(content).not_to include('Host test-host')
@@ -188,7 +188,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::SshConfigManager do
     it 'updates SSH entry successfully' do
       result = ssh_config_manager.update_ssh_entry(updated_data)
       expect(result).to be true
-      
+
       include_file_path = ssh_config_manager.instance_variable_get(:@include_file_path)
       content = File.read(include_file_path)
       expect(content).to include('HostName 192.168.33.20')
@@ -230,9 +230,9 @@ RSpec.describe VagrantPlugins::SshConfigManager::SshConfigManager do
       ssh_config_manager.add_ssh_entry(ssh_config_data)
       include_file_path = ssh_config_manager.instance_variable_get(:@include_file_path)
       File.chmod(0o000, include_file_path)
-      
+
       expect(ssh_config_manager.ssh_entry_exists?('test-host')).to be false
-      
+
       # Restore permissions for cleanup
       File.chmod(0o600, include_file_path)
     end
@@ -262,20 +262,20 @@ RSpec.describe VagrantPlugins::SshConfigManager::SshConfigManager do
 
     it 'returns all SSH entries for the project' do
       ssh_entries.each { |entry| ssh_config_manager.add_ssh_entry(entry) }
-      
+
       entries = ssh_config_manager.project_ssh_entries
       expect(entries.length).to eq(2)
-      
+
       hosts = entries.map { |entry| entry['Host'] }
       expect(hosts).to include('web-host', 'db-host')
     end
 
     it 'parses SSH config format correctly' do
       ssh_config_manager.add_ssh_entry(ssh_entries.first)
-      
+
       entries = ssh_config_manager.project_ssh_entries
       entry = entries.first
-      
+
       expect(entry['Host']).to eq('web-host')
       expect(entry['HostName']).to eq('192.168.33.10')
       expect(entry['Port']).to eq('22')
@@ -285,13 +285,13 @@ RSpec.describe VagrantPlugins::SshConfigManager::SshConfigManager do
     it 'handles malformed include file gracefully' do
       include_file_path = ssh_config_manager.instance_variable_get(:@include_file_path)
       File.write(include_file_path, "Invalid content\nNot SSH format\n")
-      
+
       expect(ssh_config_manager.project_ssh_entries).to eq([])
     end
 
     it 'provides backward compatibility alias' do
       ssh_config_manager.add_ssh_entry(ssh_entries.first)
-      
+
       expect(ssh_config_manager.get_project_ssh_entries).to eq(ssh_config_manager.project_ssh_entries)
     end
   end
@@ -299,7 +299,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::SshConfigManager do
   describe '#include_file_info' do
     it 'returns info for non-existent file' do
       info = ssh_config_manager.include_file_info
-      
+
       expect(info[:exists]).to be false
       expect(info[:size]).to eq(0)
       expect(info[:entries_count]).to eq(0)
@@ -314,9 +314,9 @@ RSpec.describe VagrantPlugins::SshConfigManager::SshConfigManager do
         'Port' => '22'
       }
       ssh_config_manager.add_ssh_entry(ssh_data)
-      
+
       info = ssh_config_manager.include_file_info
-      
+
       expect(info[:exists]).to be true
       expect(info[:size]).to be > 0
       expect(info[:entries_count]).to be > 0
@@ -339,30 +339,30 @@ RSpec.describe VagrantPlugins::SshConfigManager::SshConfigManager do
 
     it 'creates backup of existing include file' do
       ssh_config_manager.add_ssh_entry(ssh_config_data)
-      
+
       backup_path = ssh_config_manager.backup_include_file
       expect(backup_path).to be_a(String)
       expect(File.exist?(backup_path)).to be true
-      
+
       # Backup should contain same content as original
       include_file_path = ssh_config_manager.instance_variable_get(:@include_file_path)
       original_content = File.read(include_file_path)
       backup_content = File.read(backup_path)
       expect(backup_content).to eq(original_content)
-      
+
       # Clean up backup
       File.delete(backup_path)
     end
 
     it 'handles backup creation errors gracefully' do
       ssh_config_manager.add_ssh_entry(ssh_config_data)
-      
+
       # Make source file unreadable
       include_file_path = ssh_config_manager.instance_variable_get(:@include_file_path)
       File.chmod(0o000, include_file_path)
-      
+
       expect(ssh_config_manager.backup_include_file).to be_nil
-      
+
       # Restore permissions
       File.chmod(0o600, include_file_path)
     end
@@ -384,18 +384,18 @@ RSpec.describe VagrantPlugins::SshConfigManager::SshConfigManager do
     it 'restores include file from backup' do
       ssh_config_manager.add_ssh_entry(ssh_config_data)
       backup_path = ssh_config_manager.backup_include_file
-      
+
       # Modify original file
       include_file_path = ssh_config_manager.instance_variable_get(:@include_file_path)
       File.write(include_file_path, 'Modified content')
-      
+
       # Restore from backup
       expect(ssh_config_manager.restore_include_file(backup_path)).to be true
-      
+
       # Check content is restored
       content = File.read(include_file_path)
       expect(content).to include('Host test-host')
-      
+
       # Clean up backup
       File.delete(backup_path)
     end
@@ -416,7 +416,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::SshConfigManager do
         'User' => 'vagrant'
       }
       ssh_config_manager.add_ssh_entry(ssh_data)
-      
+
       result = ssh_config_manager.validate_include_file
       expect(result[:valid]).to be true
       expect(result[:errors]).to be_empty
@@ -424,18 +424,18 @@ RSpec.describe VagrantPlugins::SshConfigManager::SshConfigManager do
 
     it 'detects validation errors in malformed file' do
       include_file_path = ssh_config_manager.instance_variable_get(:@include_file_path)
-      
+
       # Create malformed SSH config
       malformed_content = <<~SSH_CONFIG
-        Host 
+        Host#{' '}
         HostName 192.168.33.10
         InvalidOption
-        
+
         Port 22
       SSH_CONFIG
-      
+
       File.write(include_file_path, malformed_content)
-      
+
       result = ssh_config_manager.validate_include_file
       expect(result[:valid]).to be false
       expect(result[:errors]).not_to be_empty
@@ -444,14 +444,14 @@ RSpec.describe VagrantPlugins::SshConfigManager::SshConfigManager do
 
     it 'detects SSH options without host declaration' do
       include_file_path = ssh_config_manager.instance_variable_get(:@include_file_path)
-      
+
       content = <<~SSH_CONFIG
         HostName 192.168.33.10
         Port 22
       SSH_CONFIG
-      
+
       File.write(include_file_path, content)
-      
+
       result = ssh_config_manager.validate_include_file
       expect(result[:valid]).to be false
       expect(result[:errors].any? { |e| e.include?('without host declaration') }).to be true
@@ -462,14 +462,14 @@ RSpec.describe VagrantPlugins::SshConfigManager::SshConfigManager do
     it 'handles directory creation when auto_create_dir is disabled' do
       config.auto_create_dir = false
       FileUtils.rm_rf(config.ssh_config_dir)
-      
+
       ssh_data = { 'Host' => 'test', 'HostName' => '192.168.1.1' }
       expect(ssh_config_manager.add_ssh_entry(ssh_data)).to be false
     end
 
     it 'handles concurrent access scenarios' do
       ssh_data = { 'Host' => 'test', 'HostName' => '192.168.1.1' }
-      
+
       # Simulate concurrent writes
       threads = []
       5.times do |i|
@@ -478,9 +478,9 @@ RSpec.describe VagrantPlugins::SshConfigManager::SshConfigManager do
           ssh_config_manager.add_ssh_entry(data)
         end
       end
-      
+
       threads.each(&:join)
-      
+
       entries = ssh_config_manager.project_ssh_entries
       expect(entries.length).to eq(5)
     end
@@ -490,17 +490,17 @@ RSpec.describe VagrantPlugins::SshConfigManager::SshConfigManager do
     it 'generates different project names for different paths' do
       machine1 = VagrantPlugins::SshConfigManager::MockMachineForSshConfigManager.new('web', '/path1')
       machine2 = VagrantPlugins::SshConfigManager::MockMachineForSshConfigManager.new('web', '/path2')
-      
+
       manager1 = described_class.new(machine1, config)
       manager2 = described_class.new(machine2, config)
-      
+
       expect(manager1.project_name).not_to eq(manager2.project_name)
     end
 
     it 'generates consistent project names for same path' do
       manager1 = described_class.new(machine, config)
       manager2 = described_class.new(machine, config)
-      
+
       expect(manager1.project_name).to eq(manager2.project_name)
     end
   end
