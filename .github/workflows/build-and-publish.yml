@@ -22,7 +22,7 @@ jobs:
     
     strategy:
       matrix:
-        ruby-version: ['3.1', '3.2', '3.3']
+        ruby-version: ['2.7', '3.0', '3.1', '3.2', '3.3']
     
     steps:
     - name: Checkout code
@@ -33,53 +33,15 @@ jobs:
       with:
         ruby-version: ${{ matrix.ruby-version }}
         bundler-cache: true
-
-    # - name: Set up Ruby 3.1
-    #   uses: ruby/setup-ruby@v1
-    #   with:
-    #     ruby-version: "3.1"
-    #     bundler-cache: true
         
     - name: Run Unit tests
-      run: ./test-unit.sh
+      run: bundle exec rspec spec/unit/ --format f
 
     - name: Run Integration tests
-      run: ./test-integration.sh
+      run: bundle exec rspec spec/integration/ --format f
         
     - name: Run RuboCop
       run: bundle exec rubocop
-
-  build-only:
-    needs: test
-    runs-on: ubuntu-latest
-    # Only run on test-* branches
-    if: startsWith(github.ref, 'refs/heads/test-')
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-        
-    - name: Set up Ruby
-      uses: ruby/setup-ruby@v1
-      with:
-        ruby-version: '3.3'
-        bundler-cache: true
-        
-    - name: Get current version
-      id: version
-      run: |
-        TARGET_VERSION=$(ruby -r './lib/vagrant-ssh-config-manager/version.rb' -e 'puts VagrantPlugins::SshConfigManager::VERSION')
-        echo "Building test version: $TARGET_VERSION"
-        echo "target_version=$TARGET_VERSION" >> $GITHUB_OUTPUT
-        
-    - name: Build gem
-      run: |
-        gem build vagrant-ssh-config-manager.gemspec
-        echo "✅ Gem built successfully: vagrant-ssh-config-manager-${{ steps.version.outputs.target_version }}.gem"
-        
-    - name: Test build summary
-      run: |
-        echo "::notice::Test branch build completed successfully for version ${{ steps.version.outputs.target_version }}. Gem was built but not published."
 
   build-and-publish:
     needs: test

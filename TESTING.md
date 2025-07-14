@@ -9,15 +9,15 @@ This project uses a **hybrid testing approach** that combines fast unit tests wi
 bundle exec rspec spec/unit/
 
 # Run integration tests (real APIs)
-./test-integration.sh
+bundle exec rspec spec/integration/
 
 # Run both test suites
-./test-hybrid.sh
+./test-all.sh
 
 # Helper scripts for detailed output:
 ./test-unit.sh           # Unit tests with documentation format
 ./test-integration.sh    # Integration tests with documentation format
-./test-hybrid.sh         # Both suites with progress format
+./test-all.sh            # Both suites with progress format
 ```
 
 ## 📁 Test Structure
@@ -27,51 +27,56 @@ spec/
 ├── unit_helper.rb           # Minimal setup for unit tests
 ├── integration_helper.rb    # Real Vagrant setup for integration tests
 ├── unit/                    # Fast, isolated unit tests
-│   ├── config_spec.rb      # ✅ Config class (32 examples)
-│   └── file_locker_spec.rb # ✅ FileLocker class (27 examples)
-├── integration/             # Real API integration tests
-│   └── include_manager_spec.rb # ✅ IncludeManager (14 examples)
-└── legacy/                  # Moved legacy test files (not run)
+│   ├── config_spec.rb          # ✅ Config class (32 examples)
+│   ├── file_locker_spec.rb     # ✅ FileLocker class (27 examples)
+│   ├── file_manager_spec.rb    # ✅ FileManager class (39 examples)
+│   └── ssh_config_manager_spec.rb # ✅ SshConfigManager class (43 examples)
+└── integration/             # Real API integration tests
+    └── include_manager_spec.rb # ✅ IncludeManager (14 examples)
 ```
 
 ## ✅ Current Test Status
 
-- **Unit Tests**: 59 examples, 0 failures (0.07s)
-- **Integration Tests**: 14 examples, 0 failures (0.02s)
-- **Total Working**: 73 examples, 0 failures
+- **Unit Tests**: 141 examples, 0 failures (~0.23s)
+- **Integration Tests**: 14 examples, 0 failures (~0.02s)
+- **Total**: **155 examples, 0 failures** (100% pass rate)
+- **Combined Runtime**: ~0.25 seconds (extremely fast!)
+
+## 🚀 Performance Metrics
+
+```bash
+$ ./test-all.sh
+📦 Unit Tests: 141 examples, 0 failures (0.23s)
+🔗 Integration Tests: 14 examples, 0 failures (0.02s)
+✅ Total: 155 examples, 0 failures
+```
 
 ## 🔧 Test Types
 
 ### Unit Tests (spec/unit/)
 - **Purpose**: Fast feedback, isolated component testing
 - **Setup**: Mocked dependencies, no real Vagrant loading
-- **Speed**: ~0.07 seconds for 59 tests
-- **Coverage**: Config validation, FileLocker concurrency
+- **Speed**: ~0.23 seconds for 141 tests
+- **Coverage**: 
+  - Config validation and setup (32 examples)
+  - FileLocker concurrency and thread safety (27 examples)
+  - FileManager SSH file operations (39 examples)
+  - SshConfigManager entry management (43 examples)
 
 ### Integration Tests (spec/integration/)
 - **Purpose**: Real API verification, end-to-end testing
 - **Setup**: Real Vagrant APIs, isolated file system environments
 - **Speed**: ~0.02 seconds for 14 tests
-- **Coverage**: SSH config manipulation, plugin markers
+- **Coverage**: IncludeManager SSH config manipulation, plugin markers
 
 ## 🛠 Helper Scripts
 
 - `./test-unit.sh` - Run only unit tests with detailed output
 - `./test-integration.sh` - Run only integration tests with detailed output  
-- `./test-hybrid.sh` - Run both test suites with summary
+- `./test-all.sh` - Run both test suites with summary
 
-## 🧹 Legacy Cleanup
-
-Legacy test files with conflicts have been moved to `spec/legacy/` and are not executed:
-- `file_manager_spec.rb`
-- `include_manager_spec.rb` (replaced by integration version)
-- `ssh_config_manager_enhanced_spec.rb`
-- `ssh_config_manager_spec.rb`
-- Various backup files
-
-## 📊 Benefits
-
-- **Fast Development**: Unit tests provide immediate feedback
-- **Confidence**: Integration tests verify real API behavior
-- **Clean Separation**: No conflicts between mocked and real dependencies
-- **Maintainable**: Clear structure for future development
+### 🎯 Test Strategy
+- **Unit Tests**: Mock all external dependencies for speed and isolation
+- **Integration Tests**: Use real Vagrant APIs with controlled environments
+- **Comprehensive Coverage**: Every major component and method tested
+- **Error Scenarios**: Both success and failure paths covered
