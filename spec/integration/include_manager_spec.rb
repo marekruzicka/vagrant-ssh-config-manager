@@ -53,8 +53,8 @@ RSpec.describe VagrantPlugins::SshConfigManager::IncludeManager, type: :integrat
 
         config_content = read_ssh_config
         expect(config_content).to include("Include #{@config_d_dir}/vagrant/*.conf")
-        expect(config_content).to include("# BEGIN vagrant-ssh-config-manager")
-        expect(config_content).to include("# END vagrant-ssh-config-manager")
+        expect(config_content).to include('# BEGIN vagrant-ssh-config-manager')
+        expect(config_content).to include('# END vagrant-ssh-config-manager')
       end
     end
 
@@ -69,7 +69,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::IncludeManager, type: :integrat
         config_content = read_ssh_config
         expect(config_content).to start_with("# BEGIN vagrant-ssh-config-manager\n")
         expect(config_content).to include("Include #{@config_d_dir}/vagrant/*.conf")
-        expect(config_content).to include("Host example")
+        expect(config_content).to include('Host example')
       end
     end
 
@@ -99,8 +99,8 @@ RSpec.describe VagrantPlugins::SshConfigManager::IncludeManager, type: :integrat
 
       config_content = read_ssh_config
       expect(config_content).not_to include("Include #{@config_d_dir}/vagrant/*.conf")
-      expect(config_content).not_to include("# BEGIN vagrant-ssh-config-manager")
-      expect(config_content).to include("Host example")
+      expect(config_content).not_to include('# BEGIN vagrant-ssh-config-manager')
+      expect(config_content).to include('Host example')
     end
   end
 
@@ -156,7 +156,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::IncludeManager, type: :integrat
 
         config_content = read_ssh_config
         expect(config_content).not_to include("Include #{@config_d_dir}/vagrant/*.conf")
-        expect(config_content).to include("Host example")
+        expect(config_content).to include('Host example')
       end
     end
   end

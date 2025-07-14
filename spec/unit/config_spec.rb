@@ -82,8 +82,8 @@ module VagrantPlugins
               errors << "sshconfigmanager.ssh_config_dir contains invalid path components: #{@ssh_config_dir}"
             end
 
-            expanded_path = File.expand_path(@ssh_config_dir)
-            
+            File.expand_path(@ssh_config_dir)
+
             if File.directory?(@ssh_config_dir)
               unless File.readable?(@ssh_config_dir) && File.writable?(@ssh_config_dir)
                 errors << "sshconfigmanager.ssh_config_dir is not readable/writable: #{@ssh_config_dir}"

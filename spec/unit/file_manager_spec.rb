@@ -1,23 +1,23 @@
+# frozen_string_literal: true
+
 require 'unit_helper'
 
 RSpec.describe VagrantPlugins::SshConfigManager::FileManager do
   let(:config) do
     instance_double('Config',
-      enabled: true,
-      ssh_config_dir: '/home/user/.ssh/config.d/vagrant',
-      project_isolation: true,
-      cleanup_empty_dir: true,
-      manage_includes: false
-    )
+                    enabled: true,
+                    ssh_config_dir: '/home/user/.ssh/config.d/vagrant',
+                    project_isolation: true,
+                    cleanup_empty_dir: true,
+                    manage_includes: false)
   end
-  
+
   let(:machine) do
     instance_double('Machine',
-      name: 'web',
-      env: instance_double('Environment', root_path: Pathname.new('/home/user/project'))
-    )
+                    name: 'web',
+                    env: instance_double('Environment', root_path: Pathname.new('/home/user/project')))
   end
-  
+
   let(:ssh_info) do
     {
       host: '192.168.33.10',
@@ -26,9 +26,9 @@ RSpec.describe VagrantPlugins::SshConfigManager::FileManager do
       private_key_path: ['/home/user/.vagrant/machines/web/virtualbox/private_key']
     }
   end
-  
+
   let(:file_manager) { described_class.new(config) }
-  
+
   before do
     allow(machine).to receive(:ssh_info).and_return(ssh_info)
     allow(FileUtils).to receive(:mkdir_p)
@@ -58,10 +58,9 @@ RSpec.describe VagrantPlugins::SshConfigManager::FileManager do
 
     it 'generates different hashes for different projects' do
       machine2 = instance_double('Machine',
-        name: 'web',
-        env: instance_double('Environment', root_path: Pathname.new('/home/user/other-project'))
-      )
-      
+                                 name: 'web',
+                                 env: instance_double('Environment', root_path: Pathname.new('/home/user/other-project')))
+
       filename1 = file_manager.generate_filename(machine)
       filename2 = file_manager.generate_filename(machine2)
       expect(filename1).not_to eq(filename2)
@@ -79,7 +78,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::FileManager do
   describe '#generate_ssh_config_content' do
     it 'generates valid SSH config content' do
       content = file_manager.generate_ssh_config_content(machine)
-      
+
       expect(content).to include('Host ')
       expect(content).to include('HostName 192.168.33.10')
       expect(content).to include('Port 2222')
@@ -90,7 +89,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::FileManager do
 
     it 'includes project metadata in comments' do
       content = file_manager.generate_ssh_config_content(machine)
-      
+
       expect(content).to include('# Managed by vagrant-ssh-config-manager plugin')
       expect(content).to include('# Project: project')
       expect(content).to include('# VM: web')
@@ -99,7 +98,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::FileManager do
 
     it 'returns nil when ssh_info is not available' do
       allow(machine).to receive(:ssh_info).and_return(nil)
-      
+
       content = file_manager.generate_ssh_config_content(machine)
       expect(content).to be_nil
     end
@@ -108,7 +107,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::FileManager do
       ssh_info_no_key = ssh_info.dup
       ssh_info_no_key.delete(:private_key_path)
       allow(machine).to receive(:ssh_info).and_return(ssh_info_no_key)
-      
+
       content = file_manager.generate_ssh_config_content(machine)
       expect(content).to include('Host ')
       expect(content).not_to include('IdentityFile')
@@ -118,7 +117,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::FileManager do
   describe '#write_ssh_config_file' do
     let(:file_path) { '/home/user/.ssh/config.d/vagrant/abc12345-web.conf' }
     let(:temp_file) { instance_double('Tempfile', write: nil, close: nil, path: '/tmp/tempfile', unlink: nil) }
-    
+
     before do
       allow(file_manager).to receive(:file_path).and_return(file_path)
       allow(file_manager).to receive(:generate_ssh_config_content).and_return("Host web\n  HostName 192.168.33.10")
@@ -130,11 +129,11 @@ RSpec.describe VagrantPlugins::SshConfigManager::FileManager do
 
     context 'when plugin is enabled' do
       it 'creates directory and writes file atomically' do
-        expect(FileUtils).to receive(:mkdir_p).with('/home/user/.ssh/config.d/vagrant', mode: 0700)
+        expect(FileUtils).to receive(:mkdir_p).with('/home/user/.ssh/config.d/vagrant', mode: 0o700)
         expect(temp_file).to receive(:write).with("Host web\n  HostName 192.168.33.10")
-        expect(File).to receive(:chmod).with(0600, '/tmp/tempfile')
+        expect(File).to receive(:chmod).with(0o600, '/tmp/tempfile')
         expect(FileUtils).to receive(:mv).with('/tmp/tempfile', anything)
-        
+
         result = file_manager.write_ssh_config_file(machine)
         expect(result).to be true
       end
@@ -142,9 +141,9 @@ RSpec.describe VagrantPlugins::SshConfigManager::FileManager do
       it 'cleans up temp file on error' do
         allow(temp_file).to receive(:write).and_raise(StandardError.new('Write failed'))
         allow(File).to receive(:exist?).with(temp_file.path).and_return(true)
-        
+
         expect(temp_file).to receive(:unlink)
-        
+
         result = file_manager.write_ssh_config_file(machine)
         expect(result).to be false
       end
@@ -158,7 +157,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::FileManager do
       it 'returns false without writing file' do
         expect(FileUtils).not_to receive(:mkdir_p)
         expect(temp_file).not_to receive(:write)
-        
+
         result = file_manager.write_ssh_config_file(machine)
         expect(result).to be false
       end
@@ -171,7 +170,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::FileManager do
 
       it 'returns false without writing file' do
         expect(temp_file).not_to receive(:write)
-        
+
         result = file_manager.write_ssh_config_file(machine)
         expect(result).to be false
       end
@@ -180,7 +179,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::FileManager do
 
   describe '#remove_ssh_config_file' do
     let(:file_path) { '/home/user/.ssh/config.d/vagrant/abc12345-web.conf' }
-    
+
     before do
       allow(file_manager).to receive(:file_path).and_return(file_path)
     end
@@ -193,7 +192,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::FileManager do
 
       it 'deletes the file' do
         expect(File).to receive(:delete).with(file_path)
-        
+
         result = file_manager.remove_ssh_config_file(machine)
         expect(result).to be true
       end
@@ -202,7 +201,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::FileManager do
         allow(Dir).to receive(:exist?).with('/home/user/.ssh/config.d/vagrant').and_return(true)
         allow(Dir).to receive(:entries).with('/home/user/.ssh/config.d/vagrant').and_return(['.', '..'])
         allow(Dir).to receive(:rmdir)
-        
+
         result = file_manager.remove_ssh_config_file(machine)
         expect(result).to be true
       end
@@ -215,7 +214,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::FileManager do
 
       it 'returns false without attempting deletion' do
         expect(File).not_to receive(:delete)
-        
+
         result = file_manager.remove_ssh_config_file(machine)
         expect(result).to be false
       end
@@ -236,21 +235,21 @@ RSpec.describe VagrantPlugins::SshConfigManager::FileManager do
 
   describe '#ssh_config_file_exists?' do
     let(:file_path) { '/home/user/.ssh/config.d/vagrant/abc12345-web.conf' }
-    
+
     before do
       allow(file_manager).to receive(:file_path).and_return(file_path)
     end
 
     it 'returns true when file exists' do
       allow(File).to receive(:exist?).with(file_path).and_return(true)
-      
+
       result = file_manager.ssh_config_file_exists?(machine)
       expect(result).to be true
     end
 
     it 'returns false when file does not exist' do
       allow(File).to receive(:exist?).with(file_path).and_return(false)
-      
+
       result = file_manager.ssh_config_file_exists?(machine)
       expect(result).to be false
     end
@@ -259,7 +258,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::FileManager do
   describe '#validate_ssh_config_content?' do
     it 'validates valid SSH config content' do
       content = "Host web\nHostName 192.168.33.10\nPort 2222"
-      
+
       result = file_manager.validate_ssh_config_content?(content)
       expect(result).to be true
     end
@@ -276,7 +275,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::FileManager do
 
     it 'rejects content missing required elements' do
       content = "Host web\nUser vagrant"
-      
+
       result = file_manager.validate_ssh_config_content?(content)
       expect(result).to be false
     end
@@ -286,7 +285,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::FileManager do
     let(:config_dir) { '/home/user/.ssh/config.d/vagrant' }
     let(:old_file) { File.join(config_dir, 'abc12345-old.conf') }
     let(:recent_file) { File.join(config_dir, 'def67890-recent.conf') }
-    
+
     before do
       allow(Dir).to receive(:exist?).with(config_dir).and_return(true)
       allow(Dir).to receive(:glob).with(File.join(config_dir, '*.conf')).and_return([old_file, recent_file])
@@ -297,7 +296,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::FileManager do
 
     it 'identifies files older than 30 days as orphaned' do
       orphaned_files = file_manager.cleanup_orphaned_files
-      
+
       expect(orphaned_files).to have_attributes(length: 1)
       expect(orphaned_files.first[:path]).to eq(old_file)
       expect(orphaned_files.first[:age_days]).to be >= 30
@@ -305,14 +304,14 @@ RSpec.describe VagrantPlugins::SshConfigManager::FileManager do
 
     it 'does not identify recent files as orphaned' do
       orphaned_files = file_manager.cleanup_orphaned_files
-      
+
       orphaned_paths = orphaned_files.map { |f| f[:path] }
       expect(orphaned_paths).not_to include(recent_file)
     end
 
     it 'returns nil when directory does not exist' do
       allow(Dir).to receive(:exist?).with(config_dir).and_return(false)
-      
+
       orphaned_files = file_manager.cleanup_orphaned_files
       expect(orphaned_files).to be_nil
     end
@@ -334,7 +333,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::FileManager do
     it 'removes all orphaned files' do
       expect(File).to receive(:delete).with('/path/to/old1.conf')
       expect(File).to receive(:delete).with('/path/to/old2.conf')
-      
+
       result = file_manager.remove_orphaned_files
       expect(result).to eq(2)
     end
@@ -342,35 +341,35 @@ RSpec.describe VagrantPlugins::SshConfigManager::FileManager do
     it 'handles deletion errors gracefully' do
       allow(File).to receive(:delete).with('/path/to/old1.conf').and_raise(StandardError.new('Permission denied'))
       allow(File).to receive(:delete).with('/path/to/old2.conf')
-      
+
       result = file_manager.remove_orphaned_files
       expect(result).to eq(1)
     end
 
     it 'cleans up empty directory when files are removed' do
       allow(config).to receive(:cleanup_empty_dir).and_return(true)
-      
+
       expect(file_manager).to receive(:cleanup_empty_directory)
-      
+
       file_manager.remove_orphaned_files
     end
   end
 
   describe '#get_all_config_files' do
     let(:config_dir) { '/home/user/.ssh/config.d/vagrant' }
-    
+
     it 'returns all .conf files in directory' do
       files = ['file1.conf', 'file2.conf']
       allow(Dir).to receive(:exist?).with(config_dir).and_return(true)
       allow(Dir).to receive(:glob).with(File.join(config_dir, '*.conf')).and_return(files)
-      
+
       result = file_manager.get_all_config_files
       expect(result).to eq(files)
     end
 
     it 'returns empty array when directory does not exist' do
       allow(Dir).to receive(:exist?).with(config_dir).and_return(false)
-      
+
       result = file_manager.get_all_config_files
       expect(result).to be_empty
     end
@@ -381,7 +380,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::FileManager do
       it 'generates consistent 8-character hash' do
         hash1 = file_manager.send(:generate_project_hash, '/home/user/project')
         hash2 = file_manager.send(:generate_project_hash, '/home/user/project')
-        
+
         expect(hash1).to eq(hash2)
         expect(hash1).to match(/^[a-f0-9]{8}$/)
       end
@@ -389,7 +388,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::FileManager do
       it 'generates different hashes for different paths' do
         hash1 = file_manager.send(:generate_project_hash, '/home/user/project1')
         hash2 = file_manager.send(:generate_project_hash, '/home/user/project2')
-        
+
         expect(hash1).not_to eq(hash2)
       end
     end
@@ -416,7 +415,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::FileManager do
 
     describe '#cleanup_empty_directory' do
       let(:config_dir) { '/home/user/.ssh/config.d/vagrant' }
-      
+
       before do
         allow(Dir).to receive(:exist?).with(config_dir).and_return(true)
       end
@@ -429,7 +428,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::FileManager do
 
         it 'removes empty directory' do
           expect(Dir).to receive(:rmdir).with(config_dir)
-          
+
           file_manager.send(:cleanup_empty_directory)
         end
 
@@ -442,7 +441,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::FileManager do
             include_manager = instance_double('IncludeManager')
             allow(VagrantPlugins::SshConfigManager::IncludeManager).to receive(:new).with(config).and_return(include_manager)
             expect(include_manager).to receive(:remove_include_directive)
-            
+
             file_manager.send(:cleanup_empty_directory)
           end
         end
@@ -455,7 +454,7 @@ RSpec.describe VagrantPlugins::SshConfigManager::FileManager do
 
         it 'does not remove directory' do
           expect(Dir).not_to receive(:rmdir)
-          
+
           file_manager.send(:cleanup_empty_directory)
         end
       end

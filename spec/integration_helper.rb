@@ -46,7 +46,7 @@ RSpec.configure do |config|
     @ssh_config_file = File.join(@ssh_dir, 'config')
     @config_d_dir = File.join(@ssh_dir, 'config.d')
     @vagrant_config_dir = File.join(@config_d_dir, 'vagrant')
-    
+
     FileUtils.mkdir_p(@vagrant_config_dir, mode: 0o700)
   end
 
@@ -64,17 +64,17 @@ RSpec.configure do |config|
     def create_test_machine(name, root_path = @temp_dir)
       env = double('environment')
       allow(env).to receive(:root_path).and_return(Pathname.new(root_path))
-      
+
       machine = double('machine')
       allow(machine).to receive(:name).and_return(name)
       allow(machine).to receive(:env).and_return(env)
       allow(machine).to receive(:ssh_info).and_return({
-        host: '192.168.33.10',
-        port: 22,
-        username: 'vagrant',
-        private_key_path: [File.join(@temp_dir, 'private_key')]
-      })
-      
+                                                        host: '192.168.33.10',
+                                                        port: 22,
+                                                        username: 'vagrant',
+                                                        private_key_path: [File.join(@temp_dir, 'private_key')]
+                                                      })
+
       machine
     end
 
@@ -84,7 +84,7 @@ RSpec.configure do |config|
       config.manage_includes = true
       config.auto_create_dir = true
       config.cleanup_empty_dir = true
-      config.ssh_conf_file = nil  # Will use default ~/.ssh/config
+      config.ssh_conf_file = nil # Will use default ~/.ssh/config
       config.finalize!
       config
     end
@@ -95,6 +95,7 @@ RSpec.configure do |config|
 
     def include_files
       return [] unless File.directory?(@vagrant_config_dir)
+
       Dir.glob(File.join(@vagrant_config_dir, '*')).sort
     end
   end)
