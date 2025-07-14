@@ -188,7 +188,7 @@ module VagrantPlugins
 
       # Return list of all config files
       def all_config_files
-        Dir.glob(File.join(@config.ssh_config_dir, '*.conf')).sort
+        Dir.glob(File.join(@config.ssh_config_dir, '*.conf'))
       end
 
       # Backward compatibility aliases

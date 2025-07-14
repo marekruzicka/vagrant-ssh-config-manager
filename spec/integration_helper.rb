@@ -96,7 +96,7 @@ RSpec.configure do |config|
     def include_files
       return [] unless File.directory?(@vagrant_config_dir)
 
-      Dir.glob(File.join(@vagrant_config_dir, '*')).sort
+      Dir.glob(File.join(@vagrant_config_dir, '*'))
     end
   end)
 end

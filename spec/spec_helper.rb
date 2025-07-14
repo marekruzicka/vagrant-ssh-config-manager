@@ -87,7 +87,7 @@ RSpec.configure do |config|
     def include_files
       return [] unless File.directory?(@config_d_dir)
 
-      Dir.glob(File.join(@config_d_dir, 'vagrant-*')).sort
+      Dir.glob(File.join(@config_d_dir, 'vagrant-*'))
     end
     alias_method :get_include_files, :include_files
   end)
