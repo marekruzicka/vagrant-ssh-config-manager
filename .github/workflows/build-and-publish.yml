@@ -16,6 +16,12 @@ on:
       - '.github/**'
       - '.ai/**'
 
+# Grant necessary permissions for the workflow
+permissions:
+  contents: write    # Required to create tags and releases
+  packages: write    # Required for package publishing
+  actions: read      # Required to read workflow
+
 jobs:
   test:
     runs-on: ubuntu-latest
