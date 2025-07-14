@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
+require_relative '../unit_helper'
 require 'tempfile'
 require 'tmpdir'
 

@@ -1,23 +1,8 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
+require_relative '../unit_helper'
 require 'tempfile'
 require 'timeout'
-
-# Mock Log4r for testing
-module Log4r
-  class Logger
-    def initialize(name)
-      @name = name
-    end
-
-    %w[debug info warn error].each do |level|
-      define_method(level) do |msg|
-        # no-op logging
-      end
-    end
-  end
-end
 
 require_relative '../../lib/vagrant_ssh_config_manager/file_locker'
 
