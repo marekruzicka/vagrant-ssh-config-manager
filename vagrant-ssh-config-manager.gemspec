@@ -15,7 +15,7 @@ Gem::Specification.new do |spec|
   spec.homepage      = 'https://github.com/marekruzicka/vagrant-ssh-config-manager'
   spec.license       = 'MIT'
 
-  spec.metadata['documentation_uri'] = 'https://rubydoc.info/github/marekruzicka/vagrant-ssh-config-manager/main'
+  spec.metadata['documentation_uri'] = 'https://github.com/marekruzicka/vagrant-ssh-config-manager#readme'
   spec.metadata['source_code_uri']   = 'https://github.com/marekruzicka/vagrant-ssh-config-manager'
   spec.metadata['changelog_uri']     = 'https://github.com/marekruzicka/vagrant-ssh-config-manager/blob/main/CHANGELOG.md'
 
