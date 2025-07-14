@@ -1,8 +1,11 @@
+# frozen_string_literal: true
+
 require 'fcntl'
 require 'timeout'
 
 module VagrantPlugins
   module SshConfigManager
+    # Handles file locking for SSH config files to prevent concurrent conflicts
     class FileLocker
       # Default timeout for acquiring locks (in seconds)
       DEFAULT_TIMEOUT = 30
@@ -14,29 +17,25 @@ module VagrantPlugins
 
       def initialize(file_path, logger = nil)
         @file_path = file_path
-        @logger = logger || Log4r::Logger.new("vagrant::plugins::ssh_config_manager::file_locker")
+        @logger = logger || Log4r::Logger.new('vagrant::plugins::ssh_config_manager::file_locker')
         @lock_file = nil
         @locked = false
       end
 
       # Acquire an exclusive lock on the file
-      def with_exclusive_lock(timeout: DEFAULT_TIMEOUT)
-        with_lock(LOCK_EXCLUSIVE, timeout: timeout) do
-          yield
-        end
+      def with_exclusive_lock(timeout: DEFAULT_TIMEOUT, &block)
+        with_lock(LOCK_EXCLUSIVE, timeout: timeout, &block)
       end
 
       # Acquire a shared lock on the file
-      def with_shared_lock(timeout: DEFAULT_TIMEOUT)
-        with_lock(LOCK_SHARED, timeout: timeout) do
-          yield
-        end
+      def with_shared_lock(timeout: DEFAULT_TIMEOUT, &block)
+        with_lock(LOCK_SHARED, timeout: timeout, &block)
       end
 
       # Check if file is currently locked by another process
       def locked?
         return false unless File.exist?(@file_path)
-        
+
         begin
           File.open(@file_path, 'r') do |file|
             # Try to acquire a non-blocking exclusive lock
@@ -45,7 +44,7 @@ module VagrantPlugins
           end
         rescue Errno::EAGAIN, Errno::EACCES
           true # File is locked
-        rescue => e
+        rescue StandardError => e
           @logger.debug("Error checking lock status: #{e.message}")
           false
         end
@@ -55,7 +54,7 @@ module VagrantPlugins
 
       def with_lock(lock_type, timeout: DEFAULT_TIMEOUT)
         acquire_lock(lock_type, timeout: timeout)
-        
+
         begin
           yield
         ensure
@@ -65,34 +64,33 @@ module VagrantPlugins
 
       def acquire_lock(lock_type, timeout: DEFAULT_TIMEOUT)
         ensure_directory_exists
-        
+
         @logger.debug("Acquiring #{lock_type_name(lock_type)} lock on #{@file_path}")
-        
+
         # Use timeout to prevent infinite waiting
         Timeout.timeout(timeout) do
-          @lock_file = File.open(@file_path, File::RDWR | File::CREAT, 0600)
+          @lock_file = File.open(@file_path, File::RDWR | File::CREAT, 0o600)
           @lock_file.flock(lock_type)
           @locked = true
           @logger.debug("Successfully acquired lock on #{@file_path}")
         end
-        
       rescue Timeout::Error
         cleanup_lock_file
-        raise LockTimeoutError.new("Timeout waiting for lock on #{@file_path} (waited #{timeout}s)")
-      rescue => e
+        raise LockTimeoutError, "Timeout waiting for lock on #{@file_path} (waited #{timeout}s)"
+      rescue StandardError => e
         cleanup_lock_file
         @logger.error("Failed to acquire lock on #{@file_path}: #{e.message}")
-        raise LockAcquisitionError.new("Could not acquire lock: #{e.message}")
+        raise LockAcquisitionError, "Could not acquire lock: #{e.message}"
       end
 
       def release_lock
         return unless @locked && @lock_file
 
         @logger.debug("Releasing lock on #{@file_path}")
-        
+
         begin
           @lock_file.flock(File::LOCK_UN)
-        rescue => e
+        rescue StandardError => e
           @logger.warn("Error releasing lock: #{e.message}")
         ensure
           cleanup_lock_file
@@ -100,34 +98,34 @@ module VagrantPlugins
       end
 
       def cleanup_lock_file
-        if @lock_file
-          begin
-            @lock_file.close unless @lock_file.closed?
-          rescue => e
-            @logger.debug("Error closing lock file: #{e.message}")
-          ensure
-            @lock_file = nil
-            @locked = false
-          end
+        return unless @lock_file
+
+        begin
+          @lock_file.close unless @lock_file.closed?
+        rescue StandardError => e
+          @logger.debug("Error closing lock file: #{e.message}")
+        ensure
+          @lock_file = nil
+          @locked = false
         end
       end
 
       def ensure_directory_exists
         dir = File.dirname(@file_path)
-        unless File.directory?(dir)
-          FileUtils.mkdir_p(dir, mode: 0700)
-          @logger.debug("Created directory: #{dir}")
-        end
+        return if File.directory?(dir)
+
+        FileUtils.mkdir_p(dir, mode: 0o700)
+        @logger.debug("Created directory: #{dir}")
       end
 
       def lock_type_name(lock_type)
         case lock_type
         when LOCK_SHARED
-          "shared"
+          'shared'
         when LOCK_EXCLUSIVE
-          "exclusive"
+          'exclusive'
         else
-          "unknown"
+          'unknown'
         end
       end
     end

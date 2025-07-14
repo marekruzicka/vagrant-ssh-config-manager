@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'fileutils'
 require 'digest'
 require 'tempfile'
@@ -9,7 +11,7 @@ module VagrantPlugins
       # Initialize FileManager with configuration
       def initialize(config)
         @config = config
-        @logger = Log4r::Logger.new("vagrant::plugins::sshconfigmanager::filemanager")
+        @logger = Log4r::Logger.new('vagrant::plugins::sshconfigmanager::filemanager')
       end
 
       # Generate unique filename for VM SSH config
@@ -20,10 +22,14 @@ module VagrantPlugins
         "#{project_hash}-#{vm_name}.conf"
       end
 
-      # Get full path for VM SSH config file
-      def get_file_path(machine)
-        filename = generate_filename(machine)
-        File.join(@config.ssh_config_dir, filename)
+      # Generate full file path for a machine's SSH config under ssh_config_dir
+      def generate_file_path(machine)
+        File.join(@config.ssh_config_dir, generate_filename(machine))
+      end
+
+      # Return full path for a machine's SSH config file
+      def file_path(machine)
+        generate_file_path(machine)
       end
 
       # Generate SSH config content for a VM
@@ -32,28 +38,28 @@ module VagrantPlugins
         return nil unless ssh_info
 
         content = []
-        content << "# Managed by vagrant-ssh-config-manager plugin"
+        content << '# Managed by vagrant-ssh-config-manager plugin'
         content << "# Project: #{File.basename(machine.env.root_path)}"
         content << "# VM: #{machine.name}"
         content << "# Generated: #{Time.now.strftime('%Y-%m-%d %H:%M:%S')}"
-        content << ""
-        
+        content << ''
+
         host_name = generate_host_name(machine)
         content << "Host #{host_name}"
         content << "  HostName #{ssh_info[:host]}"
         content << "  Port #{ssh_info[:port]}"
         content << "  User #{ssh_info[:username]}"
-        
-        if ssh_info[:private_key_path] && ssh_info[:private_key_path].first
+
+        if ssh_info[:private_key_path]&.first
           content << "  IdentityFile #{ssh_info[:private_key_path].first}"
-          content << "  IdentitiesOnly yes"
+          content << '  IdentitiesOnly yes'
         end
-        
-        content << "  UserKnownHostsFile /dev/null"
-        content << "  StrictHostKeyChecking no"
-        content << "  PasswordAuthentication no"
-        content << "  LogLevel FATAL"
-        content << ""
+
+        content << '  UserKnownHostsFile /dev/null'
+        content << '  StrictHostKeyChecking no'
+        content << '  PasswordAuthentication no'
+        content << '  LogLevel FATAL'
+        content << ''
 
         content.join("\n")
       end
@@ -62,20 +68,20 @@ module VagrantPlugins
       def write_ssh_config_file(machine)
         return false unless @config.enabled
 
-        file_path = get_file_path(machine)
+        file_path = file_path(machine)
         content = generate_ssh_config_content(machine)
         return false unless content
 
         begin
           # Ensure directory exists
-          FileUtils.mkdir_p(File.dirname(file_path), mode: 0700)
-          
+          FileUtils.mkdir_p(File.dirname(file_path), mode: 0o700)
+
           # Use atomic write with temporary file
           write_file_atomically(file_path, content)
-          
+
           @logger.info("SSH config file created: #{file_path}")
           true
-        rescue => e
+        rescue StandardError => e
           @logger.error("Failed to write SSH config file #{file_path}: #{e.message}")
           false
         end
@@ -83,13 +89,13 @@ module VagrantPlugins
 
       # Remove SSH config file for VM
       def remove_ssh_config_file(machine)
-        file_path = get_file_path(machine)
-        
+        file_path = file_path(machine)
+
         begin
           if File.exist?(file_path)
             File.delete(file_path)
             @logger.info("SSH config file removed: #{file_path}")
-            
+
             # Clean up empty directory if configured
             cleanup_empty_directory if @config.cleanup_empty_dir
             true
@@ -97,7 +103,7 @@ module VagrantPlugins
             @logger.debug("SSH config file does not exist: #{file_path}")
             false
           end
-        rescue => e
+        rescue StandardError => e
           @logger.error("Failed to remove SSH config file #{file_path}: #{e.message}")
           false
         end
@@ -105,46 +111,49 @@ module VagrantPlugins
 
       # Check if SSH config file exists for VM
       def ssh_config_file_exists?(machine)
-        File.exist?(get_file_path(machine))
+        File.exist?(file_path(machine))
       end
 
       # Validate SSH config file content
-      def validate_ssh_config_content(content)
+      # Returns true if the content contains required SSH config elements
+      def validate_ssh_config_content?(content)
         return false if content.nil? || content.empty?
-        
+
         # Basic validation - check for required SSH config elements
-        content.include?("Host ") && content.include?("HostName ") && content.include?("Port ")
+        content.include?('Host ') && content.include?('HostName ') && content.include?('Port ')
       end
+
+      alias validate_ssh_config_content validate_ssh_config_content?
 
       # Detect and clean up orphaned SSH config files
       def cleanup_orphaned_files
         return unless Dir.exist?(@config.ssh_config_dir)
 
         orphaned_files = []
-        config_files = Dir.glob(File.join(@config.ssh_config_dir, "*.conf"))
+        config_files = Dir.glob(File.join(@config.ssh_config_dir, '*.conf'))
 
         config_files.each do |file_path|
-          filename = File.basename(file_path, ".conf")
-          
+          filename = File.basename(file_path, '.conf')
+
           # Parse filename to extract project hash and VM name
-          if filename.match(/^([a-f0-9]{8})-(.+)$/)
-            project_hash = $1
-            vm_name = $2
-            
-            # Check if this looks like an orphaned file
-            # (This is a basic heuristic - in practice, you might want more sophisticated detection)
-            file_age = Time.now - File.mtime(file_path)
-            
-            # Consider files older than 30 days as potentially orphaned
-            if file_age > (30 * 24 * 60 * 60) # 30 days in seconds
-              orphaned_files << {
-                path: file_path,
-                project_hash: project_hash,
-                vm_name: vm_name,
-                age_days: (file_age / (24 * 60 * 60)).round
-              }
-            end
-          end
+          next unless filename.match(/^([a-f0-9]{8})-(.+)$/)
+
+          project_hash = ::Regexp.last_match(1)
+          vm_name = ::Regexp.last_match(2)
+
+          # Check if this looks like an orphaned file
+          # (This is a basic heuristic - in practice, you might want more sophisticated detection)
+          file_age = Time.now - File.mtime(file_path)
+
+          # Consider files older than 30 days as potentially orphaned
+          next unless file_age > (30 * 24 * 60 * 60) # 30 days in seconds
+
+          orphaned_files << {
+            path: file_path,
+            project_hash: project_hash,
+            vm_name: vm_name,
+            age_days: (file_age / (24 * 60 * 60)).round
+          }
         end
 
         # Log detected orphaned files
@@ -164,26 +173,27 @@ module VagrantPlugins
         removed_count = 0
 
         orphaned_files.each do |file_info|
-          begin
-            File.delete(file_info[:path])
-            @logger.info("Removed orphaned SSH config file: #{file_info[:path]}")
-            removed_count += 1
-          rescue => e
-            @logger.error("Failed to remove orphaned file #{file_info[:path]}: #{e.message}")
-          end
+          File.delete(file_info[:path])
+          @logger.info("Removed orphaned SSH config file: #{file_info[:path]}")
+          removed_count += 1
+        rescue StandardError => e
+          @logger.error("Failed to remove orphaned file #{file_info[:path]}: #{e.message}")
         end
 
         # Clean up empty directory if configured
-        cleanup_empty_directory if @config.cleanup_empty_dir && removed_count > 0
+        cleanup_empty_directory if @config.cleanup_empty_dir && removed_count.positive?
 
         removed_count
       end
 
-      # Get all config files in the directory
-      def get_all_config_files
-        return [] unless Dir.exist?(@config.ssh_config_dir)
-        Dir.glob(File.join(@config.ssh_config_dir, "*.conf"))
+      # Return list of all config files
+      def all_config_files
+        Dir.glob(File.join(@config.ssh_config_dir, '*.conf')).sort
       end
+
+      # Backward compatibility aliases
+      alias get_file_path file_path
+      alias get_all_config_files all_config_files
 
       private
 
@@ -208,10 +218,10 @@ module VagrantPlugins
         begin
           temp_file.write(content)
           temp_file.close
-          
+
           # Set proper permissions before moving
-          File.chmod(0600, temp_file.path)
-          
+          File.chmod(0o600, temp_file.path)
+
           # Atomic move
           FileUtils.mv(temp_file.path, file_path)
         ensure
@@ -222,22 +232,22 @@ module VagrantPlugins
       # Clean up empty directory if no config files remain
       def cleanup_empty_directory
         return unless Dir.exist?(@config.ssh_config_dir)
-        
+
         entries = Dir.entries(@config.ssh_config_dir) - %w[. ..]
-        if entries.empty?
-          begin
-            # Remove Include directive before removing directory
-            if @config.manage_includes
-              require_relative 'include_manager'
-              include_manager = IncludeManager.new(@config)
-              include_manager.remove_include_directive
-            end
-            
-            Dir.rmdir(@config.ssh_config_dir)
-            @logger.info("Removed empty SSH config directory: #{@config.ssh_config_dir}")
-          rescue => e
-            @logger.error("Failed to remove empty directory #{@config.ssh_config_dir}: #{e.message}")
+        return unless entries.empty?
+
+        begin
+          # Remove Include directive before removing directory
+          if @config.manage_includes
+            require_relative 'include_manager'
+            include_manager = IncludeManager.new(@config)
+            include_manager.remove_include_directive
           end
+
+          Dir.rmdir(@config.ssh_config_dir)
+          @logger.info("Removed empty SSH config directory: #{@config.ssh_config_dir}")
+        rescue StandardError => e
+          @logger.error("Failed to remove empty directory #{@config.ssh_config_dir}: #{e.message}")
         end
       end
     end

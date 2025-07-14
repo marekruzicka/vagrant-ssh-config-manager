@@ -1,48 +1,47 @@
+# frozen_string_literal: true
+
 module VagrantPlugins
   module SshConfigManager
     class SshInfoExtractor
       def initialize(machine)
         @machine = machine
-        @logger = Log4r::Logger.new("vagrant::plugins::ssh_config_manager::ssh_info_extractor")
+        @logger = Log4r::Logger.new('vagrant::plugins::ssh_config_manager::ssh_info_extractor')
       end
 
       # Extract SSH information from Vagrant's internal APIs
       # This replicates what 'vagrant ssh-config' does but using internal methods
       def extract_ssh_info
-        begin
-          ssh_info = @machine.ssh_info
-          return nil if ssh_info.nil?
+        ssh_info = @machine.ssh_info
+        return nil if ssh_info.nil?
 
-          # Additional validation for SSH info completeness
-          return nil unless valid_ssh_info?(ssh_info)
+        # Additional validation for SSH info completeness
+        return nil unless valid_ssh_info?(ssh_info)
 
-          # Get the SSH configuration similar to what vagrant ssh-config provides
-          config = build_ssh_config(ssh_info)
-          
-          @logger.info("Extracted SSH info for machine: #{@machine.name}") if @logger
-          config
-        rescue Vagrant::Errors::SSHNotReady => e
-          @logger.debug("SSH not ready for machine #{@machine.name}: #{e.message}") if @logger
-          nil
-        rescue Vagrant::Errors::SSHUnavailable => e
-          @logger.debug("SSH unavailable for machine #{@machine.name}: #{e.message}") if @logger
-          nil
-        rescue => e
-          @logger.warn("Failed to extract SSH info for machine #{@machine.name}: #{e.message}") if @logger
-          nil
-        end
+        # Get the SSH configuration similar to what vagrant ssh-config provides
+        config = build_ssh_config(ssh_info)
+
+        @logger&.info("Extracted SSH info for machine: #{@machine.name}")
+        config
+      rescue Vagrant::Errors::SSHNotReady => e
+        @logger&.debug("SSH not ready for machine #{@machine.name}: #{e.message}")
+        nil
+      rescue Vagrant::Errors::SSHUnavailable => e
+        @logger&.debug("SSH unavailable for machine #{@machine.name}: #{e.message}")
+        nil
+      rescue StandardError => e
+        @logger&.warn("Failed to extract SSH info for machine #{@machine.name}: #{e.message}")
+        nil
       end
 
       # Check if the machine supports SSH with comprehensive validation
       def ssh_capable?
         # Simplified check - if machine is running and has SSH info, assume SSH is available
-        @machine && 
-        @machine.state && 
-        @machine.state.id == :running && 
-        @machine.ssh_info &&
-        ssh_communicator?
-      rescue => e
-        @logger.debug("SSH capability check failed: #{e.message}") if @logger
+        @machine&.state &&
+          @machine.state.id == :running &&
+          @machine.ssh_info &&
+          ssh_communicator?
+      rescue StandardError => e
+        @logger&.debug("SSH capability check failed: #{e.message}")
         false
       end
 
@@ -51,18 +50,18 @@ module VagrantPlugins
         # Basic checks
         return false unless @machine
         return false unless @machine.communicate_ready?
-        
+
         # Check if machine state supports SSH
         return false unless machine_state_supports_ssh?
-        
+
         # Check if communicator is SSH-based
         return false unless ssh_communicator?
-        
+
         # Check if provider supports SSH
         return false unless provider_supports_ssh?
-        
+
         true
-      rescue => e
+      rescue StandardError => e
         @logger.debug("Machine SSH support check failed: #{e.message}")
         false
       end
@@ -73,11 +72,11 @@ module VagrantPlugins
       def machine_state_supports_ssh?
         state = @machine.state
         return false unless state
-        
+
         # Common states that support SSH
-        ssh_ready_states = [:running, :up, :active, :created]
+        ssh_ready_states = %i[running up active created]
         ssh_ready_states.include?(state.id)
-      rescue
+      rescue StandardError
         false
       end
 
@@ -85,7 +84,7 @@ module VagrantPlugins
       def ssh_communicator?
         communicator = @machine.config.vm.communicator
         communicator.nil? || communicator == :ssh
-      rescue
+      rescue StandardError
         # Default to assuming SSH if we can't determine
         true
       end
@@ -94,22 +93,22 @@ module VagrantPlugins
       def provider_supports_ssh?
         provider_name = @machine.provider_name
         return true unless provider_name
-        
+
         # List of providers known to support SSH
-        ssh_providers = [
-          :virtualbox, :vmware_desktop, :vmware_fusion, :vmware_workstation,
-          :libvirt, :kvm, :qemu, :parallels, :hyper_v, :lxc, :docker,
-          :aws, :azure, :google, :digitalocean, :linode, :vultr
+        ssh_providers = %i[
+          virtualbox vmware_desktop vmware_fusion vmware_workstation
+          libvirt kvm qemu parallels hyper_v lxc docker
+          aws azure google digitalocean linode vultr
         ]
-        
+
         # Providers known to NOT support SSH
         non_ssh_providers = [:winrm]
-        
+
         return false if non_ssh_providers.include?(provider_name)
-        
+
         # If it's a known SSH provider or unknown (assume SSH), return true
         ssh_providers.include?(provider_name) || !non_ssh_providers.include?(provider_name)
-      rescue
+      rescue StandardError
         # Default to assuming SSH support if we can't determine
         true
       end
@@ -119,85 +118,58 @@ module VagrantPlugins
         return false if ssh_info.nil?
         return false if ssh_info[:host].nil? || ssh_info[:host].to_s.strip.empty?
         return false if ssh_info[:port].nil? || ssh_info[:port].to_i <= 0
-        
+
         # Username is not strictly required (can default to 'vagrant')
         # but if present, it shouldn't be empty
-        if ssh_info[:username]
-          return false if ssh_info[:username].to_s.strip.empty?
-        end
-        
+        return false if ssh_info[:username] && ssh_info[:username].to_s.strip.empty?
+
         true
-      rescue
+      rescue StandardError
         false
       end
 
       # Enhanced SSH info extraction with edge case handling
       def extract_ssh_info_safe
         return nil unless machine_supports_ssh?
-        
+
         retries = 0
         max_retries = 3
         retry_delay = 1
-        
+
         begin
           ssh_info = @machine.ssh_info
           return nil unless valid_ssh_info?(ssh_info)
-          
+
           build_ssh_config(ssh_info)
         rescue Vagrant::Errors::SSHNotReady => e
           retries += 1
           if retries <= max_retries
             @logger.debug("SSH not ready, retrying in #{retry_delay}s (attempt #{retries}/#{max_retries})")
             sleep(retry_delay)
-            retry_delay *= 2  # Exponential backoff
+            retry_delay *= 2 # Exponential backoff
             retry
           else
             @logger.debug("SSH still not ready after #{max_retries} attempts")
             nil
           end
-        rescue => e
+        rescue StandardError => e
           @logger.warn("SSH info extraction failed: #{e.message}")
           nil
-        end
-      end
-
-      # Safe host name generation with fallbacks
-      def generate_host_name
-        begin
-          # Generate a unique host name based on project directory and machine name
-          project_name = File.basename(@machine.env.root_path)
-          machine_name = @machine.name.to_s
-          
-          # Sanitize names for SSH config
-          project_name = sanitize_name(project_name)
-          machine_name = sanitize_name(machine_name)
-          
-          host_name = "#{project_name}-#{machine_name}"
-          
-          # Ensure the host name is not empty after sanitization
-          if host_name.strip.empty? || host_name == '-'
-            host_name = "vagrant-#{@machine.id || 'unknown'}"
-          end
-          
-          host_name
-        rescue => e
-          @logger.debug("Host name generation failed: #{e.message}")
-          "vagrant-#{@machine.name || 'unknown'}"
         end
       end
 
       # Normalize SSH config data to ensure consistency
       def normalize_ssh_config(config)
         normalized = {}
-        
+
         config.each do |key, value|
           # Normalize key names to proper SSH config format
           normalized_key = normalize_config_key(key)
           normalized_value = normalize_config_value(key, value)
-          
+
           normalized[normalized_key] = normalized_value if normalized_value
         end
-        
+
         normalized
       end
 
@@ -205,11 +177,11 @@ module VagrantPlugins
       def parse_ssh_config_entry(entry_text)
         config = {}
         current_host = nil
-        
+
         entry_text.split("\n").each do |line|
           line = line.strip
           next if line.empty? || line.start_with?('#')
-          
+
           if line.start_with?('Host ')
             current_host = line.sub(/^Host\s+/, '').strip
             config['Host'] = current_host
@@ -218,18 +190,18 @@ module VagrantPlugins
             config[key.strip] = value.strip
           end
         end
-        
+
         config
       end
 
       # Convert normalized config back to SSH config file format
       def to_ssh_config_format(config)
         lines = []
-        
+
         # Host entry always comes first
         if config['Host']
           lines << "Host #{config['Host']}"
-          
+
           # Add other entries in a logical order
           ssh_option_order = %w[
             HostName User Port IdentityFile IdentitiesOnly
@@ -237,24 +209,21 @@ module VagrantPlugins
             LogLevel ProxyCommand Compression CompressionLevel
             ConnectTimeout ForwardAgent ForwardX11
           ]
-          
+
           ssh_option_order.each do |key|
-            if config[key]
-              lines << "  #{key} #{config[key]}"
-            end
+            lines << "  #{key} #{config[key]}" if config[key]
           end
-          
+
           # Add any remaining options not in the predefined order
           config.each do |key, value|
             next if key == 'Host' || ssh_option_order.include?(key)
+
             lines << "  #{key} #{value}"
           end
         end
-        
+
         lines.join("\n")
       end
-
-      private
 
       def build_ssh_config(ssh_info)
         config = {
@@ -267,23 +236,23 @@ module VagrantPlugins
         # Add SSH key information
         if ssh_info[:private_key_path] && !ssh_info[:private_key_path].empty?
           # Use the first private key if multiple are provided
-          key_path = ssh_info[:private_key_path].is_a?(Array) ? 
-                     ssh_info[:private_key_path].first : 
-                     ssh_info[:private_key_path]
+          key_path = if ssh_info[:private_key_path].is_a?(Array)
+                       ssh_info[:private_key_path].first
+                     else
+                       ssh_info[:private_key_path]
+                     end
           config['IdentityFile'] = key_path
           config['IdentitiesOnly'] = 'yes'
         end
 
         # Add common SSH options for Vagrant VMs
         config['StrictHostKeyChecking'] = 'no'
-        config['UserKnownHostsFile'] = '/dev/null'
+        config['UserKnownHostsFile'] = File::NULL
         config['PasswordAuthentication'] = 'no'
         config['LogLevel'] = 'FATAL'
 
         # Add proxy command if using a proxy
-        if ssh_info[:proxy_command]
-          config['ProxyCommand'] = ssh_info[:proxy_command]
-        end
+        config['ProxyCommand'] = ssh_info[:proxy_command] if ssh_info[:proxy_command]
 
         # Add comprehensive SSH options from the machine config
         add_comprehensive_ssh_options(config, ssh_info)
@@ -294,69 +263,88 @@ module VagrantPlugins
 
       # Add comprehensive SSH options support
       def add_comprehensive_ssh_options(config, ssh_info)
-        return unless ssh_info[:config] && ssh_info[:config].ssh
-        
+        return unless ssh_info[:config]&.ssh
+
         ssh_config = ssh_info[:config].ssh
-        
+
         # Connection options
-        config['Compression'] = ssh_config.compression ? 'yes' : 'no' if ssh_config.compression != nil
+        config['Compression'] = ssh_config.compression ? 'yes' : 'no' unless ssh_config.compression.nil?
         config['CompressionLevel'] = ssh_config.compression_level.to_s if ssh_config.compression_level
         config['ConnectTimeout'] = ssh_config.connect_timeout.to_s if ssh_config.connect_timeout
         config['ConnectionAttempts'] = ssh_config.connection_attempts.to_s if ssh_config.connection_attempts
         config['ServerAliveInterval'] = ssh_config.server_alive_interval.to_s if ssh_config.server_alive_interval
         config['ServerAliveCountMax'] = ssh_config.server_alive_count_max.to_s if ssh_config.server_alive_count_max
-        
+
         # Authentication options
-        config['ForwardAgent'] = ssh_config.forward_agent ? 'yes' : 'no' if ssh_config.forward_agent != nil
-        config['PubkeyAuthentication'] = ssh_config.pubkey_authentication ? 'yes' : 'no' if ssh_config.pubkey_authentication != nil
-        config['PreferredAuthentications'] = ssh_config.preferred_authentications if ssh_config.preferred_authentications
-        
+        config['ForwardAgent'] = ssh_config.forward_agent ? 'yes' : 'no' unless ssh_config.forward_agent.nil?
+        unless ssh_config.pubkey_authentication.nil?
+          config['PubkeyAuthentication'] =
+            ssh_config.pubkey_authentication ? 'yes' : 'no'
+        end
+        if ssh_config.preferred_authentications
+          config['PreferredAuthentications'] =
+            ssh_config.preferred_authentications
+        end
+
         # Forwarding options
-        config['ForwardX11'] = ssh_config.forward_x11 ? 'yes' : 'no' if ssh_config.forward_x11 != nil
-        config['ForwardX11Trusted'] = ssh_config.forward_x11_trusted ? 'yes' : 'no' if ssh_config.forward_x11_trusted != nil
-        
+        config['ForwardX11'] = ssh_config.forward_x11 ? 'yes' : 'no' unless ssh_config.forward_x11.nil?
+        unless ssh_config.forward_x11_trusted.nil?
+          config['ForwardX11Trusted'] =
+            ssh_config.forward_x11_trusted ? 'yes' : 'no'
+        end
+
         # Security options
-        config['StrictHostKeyChecking'] = ssh_config.verify_host_key ? 'yes' : 'no' if ssh_config.verify_host_key != nil
-        config['CheckHostIP'] = ssh_config.check_host_ip ? 'yes' : 'no' if ssh_config.check_host_ip != nil
-        
+        unless ssh_config.verify_host_key.nil?
+          config['StrictHostKeyChecking'] =
+            ssh_config.verify_host_key ? 'yes' : 'no'
+        end
+        config['CheckHostIP'] = ssh_config.check_host_ip ? 'yes' : 'no' unless ssh_config.check_host_ip.nil?
+
         # Protocol options
         config['Protocol'] = ssh_config.protocol if ssh_config.protocol
         config['Ciphers'] = ssh_config.ciphers.join(',') if ssh_config.ciphers && !ssh_config.ciphers.empty?
         config['MACs'] = ssh_config.macs.join(',') if ssh_config.macs && !ssh_config.macs.empty?
-        config['KexAlgorithms'] = ssh_config.kex_algorithms.join(',') if ssh_config.kex_algorithms && !ssh_config.kex_algorithms.empty?
-        
+        if ssh_config.kex_algorithms && !ssh_config.kex_algorithms.empty?
+          config['KexAlgorithms'] =
+            ssh_config.kex_algorithms.join(',')
+        end
+
         # Terminal options
-        config['RequestTTY'] = ssh_config.pty ? 'yes' : 'no' if ssh_config.pty != nil
+        config['RequestTTY'] = ssh_config.pty ? 'yes' : 'no' unless ssh_config.pty.nil?
         config['RemoteCommand'] = ssh_config.remote_command if ssh_config.remote_command
-        
+
         # File and directory options
         config['ControlMaster'] = ssh_config.control_master if ssh_config.control_master
         config['ControlPath'] = ssh_config.control_path if ssh_config.control_path
         config['ControlPersist'] = ssh_config.control_persist.to_s if ssh_config.control_persist
-        
+
         # Logging options
         config['LogLevel'] = ssh_config.log_level.to_s.upcase if ssh_config.log_level
         config['SyslogFacility'] = ssh_config.syslog_facility if ssh_config.syslog_facility
-        
+
         # Banner and environment
         config['Banner'] = ssh_config.banner if ssh_config.banner
         config['SendEnv'] = ssh_config.send_env.join(' ') if ssh_config.send_env && !ssh_config.send_env.empty?
-        config['SetEnv'] = ssh_config.set_env.map { |k, v| "#{k}=#{v}" }.join(' ') if ssh_config.set_env && !ssh_config.set_env.empty?
-        
+        if ssh_config.set_env && !ssh_config.set_env.empty?
+          config['SetEnv'] = ssh_config.set_env.map do |k, v|
+            "#{k}=#{v}"
+          end.join(' ')
+        end
+
         # Keep alive options
-        config['TCPKeepAlive'] = ssh_config.tcp_keep_alive ? 'yes' : 'no' if ssh_config.tcp_keep_alive != nil
-        
+        config['TCPKeepAlive'] = ssh_config.tcp_keep_alive ? 'yes' : 'no' unless ssh_config.tcp_keep_alive.nil?
+
         # Escape character
         config['EscapeChar'] = ssh_config.escape_char if ssh_config.escape_char
-        
+
         # Gateway options
         config['ProxyJump'] = ssh_config.proxy_jump if ssh_config.proxy_jump
-        
+
         # Add any custom options that might be defined
-        if ssh_config.respond_to?(:extra_options) && ssh_config.extra_options
-          ssh_config.extra_options.each do |key, value|
-            config[key.to_s] = value.to_s
-          end
+        return unless ssh_config.respond_to?(:extra_options) && ssh_config.extra_options
+
+        ssh_config.extra_options.each do |key, value|
+          config[key.to_s] = value.to_s
         end
       end
 
@@ -364,11 +352,11 @@ module VagrantPlugins
         # Generate a unique host name based on project directory and machine name
         project_name = File.basename(@machine.env.root_path)
         machine_name = @machine.name.to_s
-        
+
         # Sanitize names for SSH config
         project_name = sanitize_name(project_name)
         machine_name = sanitize_name(machine_name)
-        
+
         "#{project_name}-#{machine_name}"
       end
 
@@ -409,18 +397,18 @@ module VagrantPlugins
           'forward_x11' => 'ForwardX11',
           'forwardx11' => 'ForwardX11'
         }
-        
+
         key_str = key.to_s.downcase
         key_mappings[key_str] || key.to_s
       end
 
       def normalize_config_value(key, value)
         return nil if value.nil? || value.to_s.strip.empty?
-        
+
         case key.to_s.downcase
         when 'port'
           value.to_i.to_s
-        when 'compression', 'identitiesonly', 'stricthostkeychecking', 
+        when 'compression', 'identitiesonly', 'stricthostkeychecking',
              'passwordauthentication', 'forwardagent', 'forwardx11'
           # Normalize boolean-like values
           case value.to_s.downcase
