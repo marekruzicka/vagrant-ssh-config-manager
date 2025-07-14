@@ -258,7 +258,7 @@ sed -i '/# BEGIN vagrant-ssh-config-manager/,/# END vagrant-ssh-config-manager/d
 ## Compatibility
 
 - **Vagrant**: 2.0+
-- **Ruby**: 2.4+
+- **Ruby**: 3.0+
 - **Platforms**: Linux, macOS, Windows (with WSL)
 - **Providers**: VirtualBox, VMware, Libvirt, Hyper-V, Docker, AWS, and others
 
