@@ -36,7 +36,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'simplecov', '~> 0.21'
 
   # Ensure compatibility with supported Ruby versions
-  spec.required_ruby_version = '>= 2.6.0'
+  spec.required_ruby_version = '>= 3.0.0'
 
   # Plugin metadata for Vagrant
   spec.metadata['vagrant_plugin'] = 'true'

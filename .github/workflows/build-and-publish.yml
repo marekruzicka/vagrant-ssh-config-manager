@@ -65,7 +65,7 @@ jobs:
     - name: Get current version
       id: version
       run: |
-        TARGET_VERSION=$(ruby -r './lib/vagrant-ssh-config-manager/version.rb' -e 'puts VagrantPlugins::SshConfigManager::VERSION')
+        TARGET_VERSION=$(ruby -r './lib/vagrant_ssh_config_manager/version.rb' -e 'puts VagrantPlugins::SshConfigManager::VERSION')
         echo "Using current version: $TARGET_VERSION"
         echo "target_version=$TARGET_VERSION" >> $GITHUB_OUTPUT
         echo "TARGET_VERSION=$TARGET_VERSION" >> $GITHUB_ENV
