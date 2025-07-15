@@ -6,6 +6,9 @@ on:
     workflows: ["Run Unit and Integration Tests"]
     types:
       - completed
+    branches:
+      - main
+      - cicd
 
 # Grant necessary permissions for the workflow
 permissions:
