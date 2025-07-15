@@ -16,7 +16,7 @@ permissions:
 jobs:
   build-and-publish:
     # Only run this job if the TEST workflow was successful and on main branch
-    if: ${{ github.event.workflow_run.conclusion == 'success' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/cicd') }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' && (github.event.workflow_run.head_branch == 'main' || github.event.workflow_run.head_branch == 'cicd') }}
     runs-on: ubuntu-latest
     
     steps:
@@ -58,7 +58,7 @@ jobs:
         fi
         
     - name: Create git tag
-      if: steps.check_existing.outputs.git_tag_exists == 'false' && (github.ref == 'refs/heads/main')
+      if: steps.check_existing.outputs.git_tag_exists == 'false' && (github.event.workflow_run.head_branch == 'main')
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
@@ -69,7 +69,7 @@ jobs:
       run: gem build vagrant-ssh-config-manager.gemspec
         
     - name: Publish to RubyGems
-      if: steps.check_existing.outputs.gem_exists == 'false' && (github.ref == 'refs/heads/main')
+      if: steps.check_existing.outputs.gem_exists == 'false' && (github.event.workflow_run.head_branch == 'main')
       env:
         GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
       run: |
@@ -79,7 +79,7 @@ jobs:
         gem push vagrant-ssh-config-manager-${{ steps.version.outputs.target_version }}.gem
         
     - name: Create GitHub Release
-      if: steps.check_existing.outputs.gem_exists == 'false' && (github.ref == 'refs/heads/main')
+      if: steps.check_existing.outputs.gem_exists == 'false' && (github.event.workflow_run.head_branch == 'main')
       uses: softprops/action-gh-release@v1
       with:
         tag_name: v${{ steps.version.outputs.target_version }}
