@@ -31,13 +31,13 @@ jobs:
         bundler-cache: true
         
     - name: Run Unit tests
-      run: bundle exec rspec spec/unit/ --format json --out test-results/unit-tests.json
+      run: bundle exec rspec spec/unit/ --format documentation --format json --out test-results/ruby-${{ matrix.ruby-version }}_unit-tests.json
 
     - name: Run Integration tests
-      run: bundle exec rspec spec/integration/ --format json --out test-results/integration-tests.json
+      run: bundle exec rspec spec/integration/ --format documentation --format json --out test-results/ruby-${{ matrix.ruby-version }}_integration-tests.json
         
     - name: Run RuboCop
-      run: bundle exec rubocop --format github --format json --out test-results/rubocop.json
+      run: bundle exec rubocop --format github --format json --out test-results/ruby-${{ matrix.ruby-version }}_rubocop.json
 
     - name: Upload test results
       uses: actions/upload-artifact@v4
