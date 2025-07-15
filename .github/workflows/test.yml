@@ -9,6 +9,8 @@ on:
       - 'lib/**'
       - 'spec/**'
       - 'vagrant-ssh-config-manager.gemspec'
+      - '.github/workflows/**'
+      - '.github/.trigger'
 
 jobs:
   test:
