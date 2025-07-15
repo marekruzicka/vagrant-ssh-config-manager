@@ -1,4 +1,4 @@
-[![Gem Version](https://badge.fury.io/rb/vagrant-ssh-config-manager.svg)](https://badge.fury.io/rb/vagrant-ssh-config-manager)
+[![Gem Version](https://badge.fury.io/rb/vagrant-ssh-config-manager.svg)](https://badge.fury.io/rb/vagrant-ssh-config-manager) [![Run Tests](https://github.com/marekruzicka/vagrant-ssh-config-manager/actions/workflows/test.yml/badge.svg)](https://github.com/marekruzicka/vagrant-ssh-config-manager/actions/workflows/test.yml)
 
 # Vagrant SSH Config Manager
 
