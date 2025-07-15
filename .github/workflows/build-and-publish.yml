@@ -20,6 +20,13 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+    - name: Debug workflow trigger information
+      run: |
+        echo "Workflow run conclusion: ${{ github.event.workflow_run.conclusion }}"
+        echo "Workflow run head branch: ${{ github.event.workflow_run.head_branch }}"
+        echo "Current ref: ${{ github.ref }}"
+        echo "Event name: ${{ github.event_name }}"
+        
     - name: Checkout code
       uses: actions/checkout@v4
       with:
@@ -68,8 +75,8 @@ jobs:
     - name: Build gem
       run: gem build vagrant-ssh-config-manager.gemspec
         
-    - name: Publish to RubyGems
-      if: steps.check_existing.outputs.gem_exists == 'false' && (github.event.workflow_run.head_branch == 'main')
+    - name: Publish to RubyGems  
+      if: steps.check_existing.outputs.gem_exists == 'false' && github.event.workflow_run.head_branch == 'main'
       env:
         GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
       run: |
@@ -77,9 +84,16 @@ jobs:
         echo ":rubygems_api_key: $GEM_HOST_API_KEY" > ~/.gem/credentials
         chmod 0600 ~/.gem/credentials
         gem push vagrant-ssh-config-manager-${{ steps.version.outputs.target_version }}.gem
+
+    - name: Dry-run publish for cicd branch
+      if: steps.check_existing.outputs.gem_exists == 'false' && github.event.workflow_run.head_branch == 'cicd'
+      run: |
+        echo "::notice::This is a dry-run for cicd branch. Gem would be published with version ${{ steps.version.outputs.target_version }}"
+        echo "::notice::Gem file: vagrant-ssh-config-manager-${{ steps.version.outputs.target_version }}.gem"
+        ls -la vagrant-ssh-config-manager-*.gem
         
     - name: Create GitHub Release
-      if: steps.check_existing.outputs.gem_exists == 'false' && (github.event.workflow_run.head_branch == 'main')
+      if: steps.check_existing.outputs.gem_exists == 'false' && github.event.workflow_run.head_branch == 'main'
       uses: softprops/action-gh-release@v1
       with:
         tag_name: v${{ steps.version.outputs.target_version }}
@@ -92,6 +106,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
     - name: Skip publishing - already exists
-      if: steps.check_existing.outputs.gem_exists == 'true' && (github.ref == 'refs/heads/main')
+      if: steps.check_existing.outputs.gem_exists == 'true' && (github.event.workflow_run.head_branch == 'main' || github.event.workflow_run.head_branch == 'cicd')
       run: |
         echo "::notice::Gem version ${{ steps.version.outputs.target_version }} already exists on RubyGems. Skipping publication."

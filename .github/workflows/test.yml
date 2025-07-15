@@ -30,6 +30,9 @@ jobs:
         ruby-version: ${{ matrix.ruby-version }}
         bundler-cache: true
         
+    - name: Create test results directory
+      run: mkdir -p test-results
+        
     - name: Run Unit tests
       run: bundle exec rspec spec/unit/ --format documentation --format json --out test-results/ruby-${{ matrix.ruby-version }}_unit-tests.json
 

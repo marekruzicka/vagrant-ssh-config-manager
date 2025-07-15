@@ -30,6 +30,9 @@ jobs:
         ruby-version: ${{ matrix.ruby-version }}
         bundler-cache: true
         
+    - name: Create lint results directory
+      run: mkdir -p lint-results
+        
     - name: Run RuboCop
       run: bundle exec rubocop --format github --format json --out lint-results/ruby-${{ matrix.ruby-version }}_rubocop.json
 
