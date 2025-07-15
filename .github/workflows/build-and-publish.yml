@@ -1,19 +1,11 @@
 name: Build and Publish Gem
 
 on:
-  # Manual trigger
   workflow_dispatch:
-      
-  # Automatic trigger on merge to main
-  push:
-    branches:
-      - main
-    paths-ignore:
-      - '*.md'
-      - 'docs/**'
-      - '.gitignore'
-      - '.github/**'
-      - '.ai/**'
+  workflow_run:
+    workflows: ["Run Tests"]
+    types:
+      - completed
 
 # Grant necessary permissions for the workflow
 permissions:
@@ -22,37 +14,10 @@ permissions:
   actions: read      # Required to read workflow
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    
-    strategy:
-      matrix:
-        ruby-version: ['3.0', '3.1', '3.2', '3.3']
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Set up Ruby ${{ matrix.ruby-version }}
-      uses: ruby/setup-ruby@v1
-      with:
-        ruby-version: ${{ matrix.ruby-version }}
-        bundler-cache: true
-        
-    - name: Run Unit tests
-      run: bundle exec rspec spec/unit/ --format f
-
-    - name: Run Integration tests
-      run: bundle exec rspec spec/integration/ --format f
-        
-    - name: Run RuboCop
-      run: bundle exec rubocop
-
   build-and-publish:
-    needs: test
+    # Only run this job if the TEST workflow was successful and on main branch
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
-    # Only run publishing steps on main branch
-    if: github.ref == 'refs/heads/main'
     
     steps:
     - name: Checkout code
