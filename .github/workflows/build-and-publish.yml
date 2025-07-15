@@ -57,10 +57,13 @@ jobs:
         fi
         
         # Check if gem exists on RubyGems
-        if gem list -r vagrant-ssh-config-manager | grep -q "${{ steps.version.outputs.target_version }}"; then
+        echo "Checking if gem version ${{ steps.version.outputs.target_version }} exists on RubyGems..."
+        if gem search -e vagrant-ssh-config-manager -v "${{ steps.version.outputs.target_version }}" | grep -q "vagrant-ssh-config-manager (${{ steps.version.outputs.target_version }})"; then
           echo "gem_exists=true" >> $GITHUB_OUTPUT
+          echo "Gem version ${{ steps.version.outputs.target_version }} already exists on RubyGems"
         else
           echo "gem_exists=false" >> $GITHUB_OUTPUT
+          echo "Gem version ${{ steps.version.outputs.target_version }} does not exist on RubyGems"
         fi
         
     - name: Create git tag
