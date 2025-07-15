@@ -1,6 +1,7 @@
 name: Build and Publish Gem
 
 on:
+  workflow_dispatch:
   workflow_run:
     workflows: ["Run Tests"]
     types:
