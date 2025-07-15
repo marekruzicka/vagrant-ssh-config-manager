@@ -1,3 +1,5 @@
+[![Gem Version](https://badge.fury.io/rb/vagrant-ssh-config-manager.svg)](https://badge.fury.io/rb/vagrant-ssh-config-manager)
+
 # Vagrant SSH Config Manager
 
 A Vagrant plugin that automatically manages SSH configuration entries for Vagrant-managed VMs, providing seamless SSH access without the need to remember ports, IPs, or key locations.

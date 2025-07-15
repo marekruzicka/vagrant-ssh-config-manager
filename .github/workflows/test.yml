@@ -1,0 +1,46 @@
+name: Run Tests
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '**/*.rb'
+      - 'Gemfile'
+      - 'lib/**'
+      - 'spec/**'
+      - 'vagrant-ssh-config-manager.gemspec'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        ruby-version: ['3.0', '3.1', '3.2', '3.3']
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Ruby ${{ matrix.ruby-version }}
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby-version }}
+        bundler-cache: true
+        
+    - name: Run Unit tests
+      run: bundle exec rspec spec/unit/ --format json --out test-results/unit-tests.json
+
+    - name: Run Integration tests
+      run: bundle exec rspec spec/integration/ --format json --out test-results/integration-tests.json
+        
+    - name: Run RuboCop
+      run: bundle exec rubocop --format github --format json --out test-results/rubocop.json
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results
+        path: test-results/
+        retention-days: 7
+        if-no-files-found: error
