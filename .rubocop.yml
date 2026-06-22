@@ -2,25 +2,43 @@
 
 AllCops:
   NewCops: enable
+  SuggestExtensions: false
 
-# Disable metrics and complexity cops for large methods/classes
-Metrics/BlockLength:
-  Enabled: false
+Metrics/ClassLength:
+  Max: 300
+
 Metrics/MethodLength:
-  Enabled: false
+  Max: 40
+  Exclude:
+    - 'lib/vagrant_ssh_config_manager/action/*.rb'
+    - 'lib/vagrant_ssh_config_manager/ssh_info_extractor.rb'
+
 Metrics/AbcSize:
-  Enabled: false
+  Max: 35
+  Exclude:
+    - 'lib/vagrant_ssh_config_manager/action/*.rb'
+    - 'lib/vagrant_ssh_config_manager/config.rb'
+    - 'lib/vagrant_ssh_config_manager/ssh_info_extractor.rb'
+    - 'spec/**/*'
+
+Layout/LineLength:
+  Max: 120
+  Exclude:
+    - 'spec/**/*'
+    - 'vagrant-ssh-config-manager.gemspec'
+
+Metrics/BlockLength:
+  Exclude:
+    - 'spec/**/*'
+
+# Keep these complexity cops out of the v1 cleanup gate for now. The enabled
+# MethodLength/ClassLength/AbcSize gates cover the largest maintainability risks.
 Metrics/CyclomaticComplexity:
   Enabled: false
 Metrics/PerceivedComplexity:
   Enabled: false
-Metrics/ClassLength:
-  Enabled: false
 Metrics/BlockNesting:
   Enabled: false
-Layout/LineLength:
-  Enabled: false
-  Max: 120
 
 # Disable accessor naming cop for spec files (get_ prefix methods allowed in tests)
 Naming/AccessorMethodName:
