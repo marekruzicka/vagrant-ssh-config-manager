@@ -182,12 +182,6 @@ module VagrantPlugins
           false
         end
       end
-
-      def ssh_manager_instance(_machine)
-        # Return a mock object for testing
-        Object.new
-      end
-      alias get_ssh_manager_instance ssh_manager_instance
     end
   end
 end
@@ -531,22 +525,6 @@ RSpec.describe VagrantPlugins::SshConfigManager::Config do
 
         expect(config.ensure_ssh_config_directory).to be false
       end
-    end
-  end
-
-  describe '#ssh_manager_instance' do
-    let(:machine) { double('machine') }
-
-    before { config.finalize! }
-
-    it 'returns a FileManager instance' do
-      result = config.ssh_manager_instance(machine)
-      expect(result).not_to be_nil
-    end
-
-    it 'provides backward compatibility alias' do
-      # Test that the alias exists and works
-      expect(config.method(:get_ssh_manager_instance)).to eq(config.method(:ssh_manager_instance))
     end
   end
 

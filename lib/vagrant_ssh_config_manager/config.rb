@@ -178,13 +178,6 @@ module VagrantPlugins
           false
         end
       end
-
-      # Retrieve the SSH config manager for a given machine
-      def ssh_manager_instance(_machine)
-        require_relative 'file_manager'
-        FileManager.new(self)
-      end
-      alias get_ssh_manager_instance ssh_manager_instance
     end
   end
 end
