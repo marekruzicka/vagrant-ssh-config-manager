@@ -23,7 +23,6 @@ end
 require_relative '../lib/vagrant_ssh_config_manager/version'
 require_relative '../lib/vagrant_ssh_config_manager/file_locker'
 require_relative '../lib/vagrant_ssh_config_manager/file_manager'
-require_relative '../lib/vagrant_ssh_config_manager/ssh_config_manager'
 require_relative '../lib/vagrant_ssh_config_manager/include_manager'
 
 RSpec.configure do |config|
