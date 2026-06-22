@@ -6,7 +6,9 @@ RSpec.describe 'plugin action hooks' do
   end
 
   it 'does not reference nonexistent suspend or resume built-in action constants' do
-    expect(plugin_source).not_to include('Vagrant::Action::Builtin::Suspend')
-    expect(plugin_source).not_to include('Vagrant::Action::Builtin::Resume')
+    builtin_prefix = 'Vagrant::Action::Builtin::'
+
+    expect(plugin_source).not_to include("#{builtin_prefix}Suspend")
+    expect(plugin_source).not_to include("#{builtin_prefix}Resume")
   end
 end
