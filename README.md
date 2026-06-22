@@ -8,8 +8,8 @@ A Vagrant plugin that automatically manages SSH configuration entries for Vagran
 
 - **Automatic SSH Config Management**: Creates and maintains SSH config files when VMs are started
 - **Project Isolation**: Each Vagrant project gets its own SSH config namespace to avoid conflicts
-- **Separate File Management**: Creates individual SSH config files for each VM in a dedicated directory
-- **Include Directive Management**: Automatically manages Include directives in your main SSH config
+- **Per-VM File Management**: Creates one SSH config file per VM under `~/.ssh/config.d/vagrant/`
+- **Include Directive Management**: Optionally manages the `Include ~/.ssh/config.d/vagrant/*.conf` directive in your main SSH config
 - **Lifecycle Integration**: Hooks into all Vagrant VM lifecycle events (up, destroy, reload, halt, provision)
 - **Configurable Behavior**: Extensive configuration options for different workflows
 - **Robust Error Handling**: Graceful handling of file permission issues and concurrent access
@@ -99,9 +99,9 @@ end
 
 ## How It Works
 
-### Separate File Architecture (Default)
+### Per-VM File Architecture
 
-The plugin creates individual SSH config files for each VM in a dedicated directory (default: `~/.ssh/config.d/vagrant/`). This approach:
+v1 uses a per-VM SSH config architecture. The plugin creates one SSH config file for each VM in a dedicated directory (default: `~/.ssh/config.d/vagrant/`) and SSH reads those files through an `Include` directive. This approach:
 
 - **Prevents conflicts**: Each VM has its own config file
 - **Enables easier cleanup**: Destroying a VM removes only its config file
@@ -112,11 +112,20 @@ The plugin creates individual SSH config files for each VM in a dedicated direct
 
 ```
 ~/.ssh/config                           # Your main SSH config
+  └── Include ~/.ssh/config.d/vagrant/*.conf
 ~/.ssh/config.d/vagrant/                # Plugin-managed directory
   ├── a1b2c3d4-web.conf                # Individual VM config files
   ├── a1b2c3d4-db.conf
   └── f5e6d7c8-api.conf                # From different projects
 ```
+
+Per-VM filenames use the first eight characters of the MD5 hash of the project path for storage uniqueness:
+
+```
+{md5-project-hash}-{vm}.conf
+```
+
+The MD5 hash is only used in filenames. SSH `Host` aliases never include the MD5 hash.
 
 ### Include Directive Management
 
@@ -133,10 +142,17 @@ Include ~/.ssh/config.d/vagrant/*.conf
 
 ### Project Isolation
 
-Each Vagrant project gets a unique identifier based on the project path:
+`project_isolation` controls SSH alias naming:
+
+- `project_isolation: true` (default): `Host {project}-{vm}` such as `my-app-web`
+- `project_isolation: false`: `Host {vm}` such as `web`
+
+Set `project_isolation` to `false` when host names are managed elsewhere, such as by `vagrant-hostmanager`. Be mindful of hostname collisions when using non-isolated aliases.
+
+Storage filenames remain hash-prefixed regardless of `project_isolation`:
+
 - Project path: `/home/user/my-app`
 - Project hash: `a1b2c3d4` (first 8 chars of MD5)
-- SSH host names: `my-app-web`, `my-app-db`
 - Config files: `a1b2c3d4-web.conf`, `a1b2c3d4-db.conf`
 
 ### Individual Config File Example

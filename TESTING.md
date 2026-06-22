@@ -5,20 +5,20 @@ This project uses a **hybrid testing approach** that combines fast unit tests wi
 ## 🚀 Quick Start
 
 ```bash
-# Run unit tests (fast, recommended for development)
-bundle exec rspec spec/unit/
+# Canonical full-suite command
+bundle exec rake
 
-# Run integration tests (real APIs)
-bundle exec rspec spec/integration/
-
-# Run both test suites
-./test-all.sh
+# Individual suites
+bundle exec rake spec:unit
+bundle exec rake spec:integration
 
 # Helper scripts for detailed output:
 ./test-unit.sh           # Unit tests with documentation format
 ./test-integration.sh    # Integration tests with documentation format
 ./test-all.sh            # Both suites with progress format
 ```
+
+`bundle exec rake` is the supported full-suite command. It runs unit and integration specs in separate Ruby processes because integration specs load real Vagrant while unit specs mock some Vagrant constants.
 
 ## 📁 Test Structure
 
@@ -29,26 +29,23 @@ spec/
 ├── unit/                    # Fast, isolated unit tests
 │   ├── config_spec.rb          # ✅ Config class (32 examples)
 │   ├── file_locker_spec.rb     # ✅ FileLocker class (27 examples)
-│   ├── file_manager_spec.rb    # ✅ FileManager class (39 examples)
-│   └── ssh_config_manager_spec.rb # ✅ SshConfigManager class (43 examples)
+│   └── file_manager_spec.rb    # ✅ FileManager class (39 examples)
 └── integration/             # Real API integration tests
     └── include_manager_spec.rb # ✅ IncludeManager (14 examples)
 ```
 
 ## ✅ Current Test Status
 
-- **Unit Tests**: 141 examples, 0 failures (~0.23s)
-- **Integration Tests**: 14 examples, 0 failures (~0.02s)
-- **Total**: **155 examples, 0 failures** (100% pass rate)
+- **Unit Tests**: run with `bundle exec rake spec:unit`
+- **Integration Tests**: run with `bundle exec rake spec:integration`
+- **Full Suite**: run with `bundle exec rake`
 - **Combined Runtime**: ~0.25 seconds (extremely fast!)
 
 ## 🚀 Performance Metrics
 
 ```bash
-$ ./test-all.sh
-📦 Unit Tests: 141 examples, 0 failures (0.23s)
-🔗 Integration Tests: 14 examples, 0 failures (0.02s)
-✅ Total: 155 examples, 0 failures
+$ bundle exec rake
+# Runs unit specs, then integration specs, in separate Ruby processes
 ```
 
 ## 🔧 Test Types
@@ -56,17 +53,16 @@ $ ./test-all.sh
 ### Unit Tests (spec/unit/)
 - **Purpose**: Fast feedback, isolated component testing
 - **Setup**: Mocked dependencies, no real Vagrant loading
-- **Speed**: ~0.23 seconds for 141 tests
+- **Command**: `bundle exec rake spec:unit`
 - **Coverage**: 
-  - Config validation and setup (32 examples)
-  - FileLocker concurrency and thread safety (27 examples)
-  - FileManager SSH file operations (39 examples)
-  - SshConfigManager entry management (43 examples)
+  - Config validation and setup
+  - FileLocker concurrency and thread safety
+  - FileManager SSH file operations
 
 ### Integration Tests (spec/integration/)
 - **Purpose**: Real API verification, end-to-end testing
 - **Setup**: Real Vagrant APIs, isolated file system environments
-- **Speed**: ~0.02 seconds for 14 tests
+- **Command**: `bundle exec rake spec:integration`
 - **Coverage**: IncludeManager SSH config manipulation, plugin markers
 
 ## 🛠 Helper Scripts
