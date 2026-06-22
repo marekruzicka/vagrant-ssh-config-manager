@@ -14,7 +14,6 @@ require_relative '../lib/vagrant_ssh_config_manager/file_locker'
 require_relative '../lib/vagrant_ssh_config_manager/config'
 require_relative '../lib/vagrant_ssh_config_manager/file_manager'
 require_relative '../lib/vagrant_ssh_config_manager/include_manager'
-require_relative '../lib/vagrant_ssh_config_manager/ssh_config_manager'
 
 RSpec.configure do |config|
   config.expect_with :rspec do |expectations|

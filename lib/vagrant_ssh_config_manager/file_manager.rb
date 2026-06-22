@@ -204,12 +204,35 @@ module VagrantPlugins
 
       # Generate SSH host name for machine
       def generate_host_name(machine)
-        if @config.project_isolation
-          project_name = File.basename(machine.env.root_path)
-          "#{project_name}-#{machine.name}"
-        else
-          machine.name.to_s
-        end
+        host_name = if @config.project_isolation
+                      project_name = sanitize_name(File.basename(machine.env.root_path))
+                      vm_name = sanitize_name(machine.name.to_s)
+                      "#{project_name}-#{vm_name}"
+                    else
+                      sanitize_name(machine.name.to_s)
+                    end
+
+        truncate_host_name(host_name)
+      end
+
+      # Sanitize project and VM names for use as SSH host aliases.
+      def sanitize_name(name)
+        return 'unknown' if name.nil? || name.to_s.strip.empty?
+
+        name.to_s
+            .gsub(/[^a-zA-Z0-9\-_.]/, '-')
+            .gsub(/\.+/, '.')
+            .gsub(/-+/, '-')
+            .gsub(/^[-._]+|[-._]+$/, '')
+            .downcase
+            .then { |value| value.empty? ? 'unknown' : value }
+      end
+
+      # Keep generated aliases short enough for common hostname consumers.
+      def truncate_host_name(host_name, max_length = 64)
+        return host_name if host_name.length <= max_length
+
+        host_name[0...max_length].gsub(/[-._]+$/, '')
       end
 
       # Write file atomically using temporary file and rename

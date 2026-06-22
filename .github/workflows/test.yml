@@ -2,10 +2,19 @@ name: Run Unit and Integration Tests
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - '**/*.rb'
+      - 'Gemfile*'
+      - 'lib/**'
+      - 'spec/**'
+      - 'vagrant-ssh-config-manager.gemspec'
+      - '.github/workflows/**'
+      - '.github/.trigger'
   push:
     paths:
       - '**/*.rb'
-      - 'Gemfile'
+      - 'Gemfile*'
       - 'lib/**'
       - 'spec/**'
       - 'vagrant-ssh-config-manager.gemspec'
@@ -15,34 +24,45 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     strategy:
       matrix:
         ruby-version: ['3.0', '3.1', '3.2', '3.3']
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
+
     - name: Set up Ruby ${{ matrix.ruby-version }}
       uses: ruby/setup-ruby@v1
       with:
         ruby-version: ${{ matrix.ruby-version }}
         bundler-cache: true
-        
-    - name: Create test results directory
-      run: mkdir -p test-results
-        
-    - name: Run Unit tests
-      run: bundle exec rspec spec/unit/ --format documentation --format json --out test-results/ruby-${{ matrix.ruby-version }}_unit-tests.json
 
-    - name: Run Integration tests
-      run: bundle exec rspec spec/integration/ --format documentation --format json --out test-results/ruby-${{ matrix.ruby-version }}_integration-tests.json
-        
-    - name: Upload test results
+    - name: Run test suite
+      run: bundle exec rake
+
+  build-gem:
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.3'
+        bundler-cache: true
+
+    - name: Build gem
+      run: bundle exec gem build vagrant-ssh-config-manager.gemspec
+
+    - name: Upload built gem
       uses: actions/upload-artifact@v4
       with:
-        name: test-results-ruby-${{ matrix.ruby-version }}
-        path: test-results/
+        name: built-gem
+        path: vagrant-ssh-config-manager-*.gem
         retention-days: 7
         if-no-files-found: error

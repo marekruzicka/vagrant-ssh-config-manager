@@ -84,7 +84,8 @@ module VagrantPlugins
                 errors << "sshconfigmanager.ssh_config_dir cannot be created: #{e.message}"
               end
             else
-              errors << "sshconfigmanager.ssh_config_dir does not exist and auto_create_dir is disabled: #{@ssh_config_dir}"
+              errors << 'sshconfigmanager.ssh_config_dir does not exist and auto_create_dir is disabled: '
+              errors[-1] += @ssh_config_dir
             end
           else
             errors << 'sshconfigmanager.ssh_config_dir must be a string path'
@@ -152,18 +153,28 @@ module VagrantPlugins
         result = self.class.new
 
         # Merge each attribute, preferring the other config's values if set
-        result.enabled = other.enabled == UNSET_VALUE ? @enabled : other.enabled
-        result.ssh_config_dir = other.ssh_config_dir == UNSET_VALUE ? @ssh_config_dir : other.ssh_config_dir
-        result.manage_includes = other.manage_includes == UNSET_VALUE ? @manage_includes : other.manage_includes
-        result.auto_create_dir = other.auto_create_dir == UNSET_VALUE ? @auto_create_dir : other.auto_create_dir
-        result.cleanup_empty_dir = other.cleanup_empty_dir == UNSET_VALUE ? @cleanup_empty_dir : other.cleanup_empty_dir
-        result.auto_remove_on_destroy = other.auto_remove_on_destroy == UNSET_VALUE ? @auto_remove_on_destroy : other.auto_remove_on_destroy
-        result.update_on_reload = other.update_on_reload == UNSET_VALUE ? @update_on_reload : other.update_on_reload
-        result.refresh_on_provision = other.refresh_on_provision == UNSET_VALUE ? @refresh_on_provision : other.refresh_on_provision
-        result.keep_config_on_halt = other.keep_config_on_halt == UNSET_VALUE ? @keep_config_on_halt : other.keep_config_on_halt
-        result.project_isolation = other.project_isolation == UNSET_VALUE ? @project_isolation : other.project_isolation
+        config_attributes.each do |attribute|
+          result.public_send("#{attribute}=", merged_value(other, attribute))
+        end
 
         result
+      end
+
+      # Config attributes that can be inherited/merged.
+      def config_attributes
+        %i[
+          enabled ssh_config_dir manage_includes auto_create_dir cleanup_empty_dir
+          auto_remove_on_destroy update_on_reload refresh_on_provision
+          keep_config_on_halt project_isolation
+        ]
+      end
+
+      # Prefer explicitly set child values when merging config objects.
+      def merged_value(other, attribute)
+        other_value = other.public_send(attribute)
+        return public_send(attribute) if other_value == UNSET_VALUE
+
+        other_value
       end
 
       # Create SSH config directory with proper permissions
@@ -178,13 +189,6 @@ module VagrantPlugins
           false
         end
       end
-
-      # Retrieve the SSH config manager for a given machine
-      def ssh_manager_instance(_machine)
-        require_relative 'file_manager'
-        FileManager.new(self)
-      end
-      alias get_ssh_manager_instance ssh_manager_instance
     end
   end
 end

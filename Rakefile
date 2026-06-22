@@ -3,7 +3,22 @@
 require 'bundler/gem_tasks'
 require 'rspec/core/rake_task'
 
-RSpec::Core::RakeTask.new(:spec)
+# Unit and integration specs must run in separate Ruby processes.
+# Integration specs load the real Vagrant gem which defines
+# Vagrant::Plugin::V2::Config as a class; unit specs mock it as a
+# module, causing TypeError when loaded in the same process.
+namespace :spec do
+  RSpec::Core::RakeTask.new(:unit) do |t|
+    t.pattern = 'spec/unit/**/*_spec.rb'
+  end
+
+  RSpec::Core::RakeTask.new(:integration) do |t|
+    t.pattern = 'spec/integration/**/*_spec.rb'
+  end
+end
+
+desc 'Run all specs (unit + integration in separate processes)'
+task spec: ['spec:unit', 'spec:integration']
 
 task default: :spec
 

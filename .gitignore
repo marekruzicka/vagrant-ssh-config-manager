@@ -4,3 +4,5 @@ test_file
 vagrant-ssh-config-manager-*.gem
 Gemfile.lock
 .vagrant
+.pi/plans
+.pi/discussions

@@ -50,6 +50,13 @@ RSpec.describe VagrantPlugins::SshConfigManager::FileManager do
       expect(filename).to match(/^[a-f0-9]{8}-web\.conf$/)
     end
 
+    it 'uses the MD5 project hash for storage uniqueness' do
+      expected_hash = Digest::MD5.hexdigest('/home/user/project')[0, 8]
+
+      filename = file_manager.generate_filename(machine)
+      expect(filename).to eq("#{expected_hash}-web.conf")
+    end
+
     it 'uses consistent project hash for same path' do
       filename1 = file_manager.generate_filename(machine)
       filename2 = file_manager.generate_filename(machine)
@@ -395,9 +402,43 @@ RSpec.describe VagrantPlugins::SshConfigManager::FileManager do
 
     describe '#generate_host_name' do
       context 'with project isolation enabled' do
-        it 'combines project name and machine name' do
+        it 'preserves the project-machine alias format' do
           host_name = file_manager.send(:generate_host_name, machine)
           expect(host_name).to eq('project-web')
+        end
+
+        it 'sanitizes special characters in project and machine names' do
+          special_machine = instance_double(
+            'Machine',
+            name: 'Web VM_01!!',
+            env: instance_double('Environment', root_path: Pathname.new('/home/user/My Project!!!'))
+          )
+
+          host_name = file_manager.send(:generate_host_name, special_machine)
+          expect(host_name).to eq('my-project-web-vm_01')
+        end
+
+        it 'uses unknown for empty sanitized project and VM names' do
+          empty_machine = instance_double(
+            'Machine',
+            name: '...',
+            env: instance_double('Environment', root_path: Pathname.new('/'))
+          )
+
+          host_name = file_manager.send(:generate_host_name, empty_machine)
+          expect(host_name).to eq('unknown-unknown')
+        end
+
+        it 'truncates generated aliases to 64 characters' do
+          long_machine = instance_double(
+            'Machine',
+            name: 'vmname' * 20,
+            env: instance_double('Environment', root_path: Pathname.new("/home/user/#{'project' * 20}"))
+          )
+
+          host_name = file_manager.send(:generate_host_name, long_machine)
+          expect(host_name.length).to be <= 64
+          expect(host_name).not_to match(/[-._]$/)
         end
       end
 
@@ -406,9 +447,20 @@ RSpec.describe VagrantPlugins::SshConfigManager::FileManager do
           allow(config).to receive(:project_isolation).and_return(false)
         end
 
-        it 'uses only machine name' do
+        it 'preserves the machine-only alias format' do
           host_name = file_manager.send(:generate_host_name, machine)
           expect(host_name).to eq('web')
+        end
+
+        it 'sanitizes special characters in machine names' do
+          special_machine = instance_double(
+            'Machine',
+            name: 'Web VM_01!!',
+            env: instance_double('Environment', root_path: Pathname.new('/home/user/My Project!!!'))
+          )
+
+          host_name = file_manager.send(:generate_host_name, special_machine)
+          expect(host_name).to eq('web-vm_01')
         end
       end
     end
