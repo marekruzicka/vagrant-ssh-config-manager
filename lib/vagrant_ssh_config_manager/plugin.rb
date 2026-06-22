@@ -39,8 +39,8 @@ module VagrantPlugins
         hook.before(Vagrant::Action::Builtin::GracefulHalt, Action::Halt)
       end
 
-      # Suspend hook removed: Vagrant::Action::Builtin::Suspend does not exist
-      # in Vagrant 2.4.x. Halt behavior (keep SSH config) covers suspend.
+      # Suspend hook removed: Vagrant 2.4.x has no built-in suspend action
+      # middleware constant. Halt behavior (keep SSH config) covers suspend.
 
       action_hook(:ssh_config_manager, :machine_action_resume) do |hook|
         require 'vagrant_ssh_config_manager/action/up'
