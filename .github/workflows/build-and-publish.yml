@@ -79,7 +79,7 @@ jobs:
         git push origin "v${{ steps.version.outputs.target_version }}"
         
     - name: Build gem
-      run: gem build vagrant-ssh-config-manager.gemspec
+      run: bundle exec gem build vagrant-ssh-config-manager.gemspec
         
     - name: Publish to RubyGems  
       if: |

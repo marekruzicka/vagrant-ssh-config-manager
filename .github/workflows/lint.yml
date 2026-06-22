@@ -2,10 +2,19 @@ name: Run Rubocop
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - '**/*.rb'
+      - 'Gemfile*'
+      - 'lib/**'
+      - 'spec/**'
+      - 'vagrant-ssh-config-manager.gemspec'
+      - '.github/workflows/**'
+      - '.github/.trigger'
   push:
     paths:
       - '**/*.rb'
-      - 'Gemfile'
+      - 'Gemfile*'
       - 'lib/**'
       - 'spec/**'
       - 'vagrant-ssh-config-manager.gemspec'
@@ -15,28 +24,28 @@ on:
 jobs:
   lint:
     runs-on: ubuntu-latest
-    
+
     strategy:
       matrix:
         ruby-version: ['3.3']
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
+
     - name: Set up Ruby ${{ matrix.ruby-version }}
       uses: ruby/setup-ruby@v1
       with:
         ruby-version: ${{ matrix.ruby-version }}
         bundler-cache: true
-        
+
     - name: Create lint results directory
       run: mkdir -p lint-results
-        
+
     - name: Run RuboCop
       run: bundle exec rubocop --format github --format json --out lint-results/ruby-${{ matrix.ruby-version }}_rubocop.json
 
-    - name: Upload test results
+    - name: Upload lint results
       uses: actions/upload-artifact@v4
       with:
         name: lint-results-ruby-${{ matrix.ruby-version }}
